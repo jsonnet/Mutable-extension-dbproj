@@ -48,7 +48,7 @@ int main(int argc, const char **argv)
     T.push_back(C.pool("pkg_ver"),      m::Type::Get_Char(m::Type::TY_Vector, 20));
     T.push_back(C.pool("description"),  m::Type::Get_Char(m::Type::TY_Vector, 80));
     T.push_back(C.pool("licenses"),     m::Type::Get_Char(m::Type::TY_Vector, 32));
-    T.push_back(C.pool("size"),         m::Type::Get_Integer(m::Type::TY_Vector, 4));
+    T.push_back(C.pool("size"),         m::Type::Get_Integer(m::Type::TY_Vector, 8));
     T.push_back(C.pool("packager"),     m::Type::Get_Char(m::Type::TY_Vector, 32));
 
     /* Back the table with our store. */
