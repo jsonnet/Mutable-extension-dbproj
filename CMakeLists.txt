@@ -16,10 +16,10 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -ggdb3")
 
 if(APPLE)
     set(MUTABLE_URL "https://bigdata.uni-saarland.de/teaching/dbsys20/mutable-macos-amd64.zip")
-    set(MUTABLE_MD5 "ea025659ebaa77777b109758e6baf32a")
+    set(MUTABLE_MD5 "4d4879d8560913d314e3f7184db9d6fd")
 else()
     set(MUTABLE_URL "https://bigdata.uni-saarland.de/teaching/dbsys20/mutable-linux-amd64.zip")
-    set(MUTABLE_MD5 "eb484db1bdad86f6114ea61aac42ec46")
+    set(MUTABLE_MD5 "d4aa6393f8871be63b9afc3c0af7a6a6")
 endif()
 
 ExternalProject_Add(
