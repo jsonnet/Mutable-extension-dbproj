@@ -1,48 +1,47 @@
 #include "RowStore.hpp"
 
-
 RowStore::RowStore(const m::Table &table)
         : Store(table)
 {
     /* TODO 1.2.1: Allocate memory. */
     std::size_t numAttributes = table.size();  //amount of attributes
+    std::size_t current_offset = 0;
+
+    for(std::size_t i=0; i<table.size(); ++i){
+        current_offset += table[i].type->size(); //in bits
+    }
+
+
+    //round_up(sum of all attribute bits needed + bitmap bits)
+    size_t row_bits_total = current_offset + numAttributes;
+    size_t row_total_bytes = row_bits_total % 8 == 0 ? (row_bits_total / 8) : (row_bits_total / 8) +1;
+
+    auto bytes_first_elem = table[(size_t)0].type->size() / 8;  //changes this to element of first
+    auto paddRowSize = (bytes_first_elem - ( row_total_bytes % bytes_first_elem)) % bytes_first_elem;
+    std::size_t master_stride_bytes = row_total_bytes + paddRowSize;
+
+    auto address = reinterpret_cast<uintptr_t>(malloc(row_total_bytes * 100000));
 
     /* TODO 1.2.2: Create linearization. */
     auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
 
-    //generate the one row and add it to lin
+    //Create the row
     auto row = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(numAttributes+1,1));
-    //auto attributes = table.primary_key();
-
-    std::size_t current_offset = 0;
-
+    size_t offset = 0;
     for(std::size_t i=0; i<table.size(); ++i){
-        std::size_t size_of_attr = table[i].type->size(); //in bits
-
-        //offset = start addresse, stride = length of my variable
-        row->add_sequence(current_offset, 0, table[i]);
-        current_offset += size_of_attr;
+        row->add_sequence(offset, 0, table[i]);
+        offset += table[i].type->size();
     }
+    row->add_null_bitmap(offset, 0);
 
-    row->add_null_bitmap(current_offset, 0);
-
-    //round_up(sum of all attribute bits needed + bitmap bits)
-    size_t first_bytes = ((current_offset + numAttributes) / 8);
-    auto align = table[(size_t)0].type->size();
-    auto padding = (align - (first_bytes % align)) % align;
-
-    std::size_t master_stride_bytes = first_bytes + padding;
-
-
-    auto address =  malloc(master_stride_bytes);
-
-    lin->add_sequence((uint64_t)address, master_stride_bytes, std::move(row));
+    lin->add_sequence(address, master_stride_bytes, std::move(row));
     linearization(std::move(lin));
 }
 
 RowStore::~RowStore()
 {
     /* TODO 1.2.1: Free allocated memory. */
+    //free(address);
 }
 
 std::size_t RowStore::num_rows() const
@@ -50,6 +49,7 @@ std::size_t RowStore::num_rows() const
     /* TODO 1.2.1: Implement */
 }
 
+//Append another tuple row dynamically
 void RowStore::append()
 {
     /* TODO 1.2.1: Implement */
