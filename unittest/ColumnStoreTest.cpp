@@ -90,6 +90,7 @@ TEST_CASE("ColumnStore/access", "[milestone1]")
 
         std::size_t num_tuples = 0;
         auto callback = std::make_unique<m::CallbackOperator>([&](const m::Schema &S, const m::Tuple &T) {
+            auto t1 = reinterpret_cast<char*>(T.get(S[C.pool("g_c")].first).as_p());
             switch (num_tuples) {
                 case 0: {
                     CHECK_VALUE("a_i4", i, 42);
