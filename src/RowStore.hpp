@@ -8,6 +8,9 @@ struct RowStore : m::Store
 {
     private:
     /* TODO 1.2.1: Declare necessary fields. */
+    uintptr_t address;
+    size_t rows_used;
+    size_t row_total_bytes;
 
     public:
     RowStore(const m::Table &table);
@@ -22,4 +25,5 @@ struct RowStore : m::Store
 
     void dump(std::ostream &out) const override;
     using Store::dump;
+
 };

@@ -1,9 +1,8 @@
 #include "RowStore.hpp"
 
-uintptr_t address;
-size_t rows_used;
-size_t row_total_bytes;
 using namespace rewire;
+
+bool alignCompare(const std::tuple<size_t, size_t> &a, const std::tuple<size_t, size_t> &b) { return std::get<0>(a) > std::get<0>(b);}
 
 RowStore::RowStore(const m::Table &table)
         : Store(table) {
@@ -12,14 +11,23 @@ RowStore::RowStore(const m::Table &table)
     std::size_t current_offset = 0;
     size_t current_biggest_align = 0;
 
+    std::vector<std::tuple<size_t , size_t>> toSort;
+    size_t counter = 0;
+
     // Check each attribute in table
     for (const auto &i : table) {
         current_offset += i.type->size(); // Attr sze added to current offset in bits
-
+        toSort.push_back(std::make_tuple(i.type->alignment(), counter++));
         // Take the biggest attr alignment
-        if (i.type->alignment() > current_biggest_align)
+        if (i.type->alignment() > current_biggest_align) {
             current_biggest_align = i.type->alignment();
+        }
+
     }
+
+    //sort attributes with alignment descending
+    std::sort(toSort.begin(), toSort.end(), alignCompare);
+
 
     // ceil(sum of all attribute bits needed + bitmap bits)
     size_t row_bits_total = current_offset + numAttributes;
@@ -49,9 +57,9 @@ RowStore::RowStore(const m::Table &table)
     //Create the row
     auto row = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(numAttributes + 1, 1));
     size_t offset = 0;
-    for (const auto &i : table) {
-        row->add_sequence(offset, 0, i);
-        offset += i.type->size();
+    for (const auto &i : toSort) {
+        row->add_sequence(offset, 0, table[std::get<1>(i)]);
+        offset += table[std::get<1>(i)].type->size();
     }
     row->add_null_bitmap(offset, 0);
     rows_used = 0;
