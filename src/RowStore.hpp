@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutable/mutable.hpp>
+#include <mutable/util/memory.hpp>
 
 
 struct RowStore : m::Store
