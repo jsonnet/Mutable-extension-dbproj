@@ -6,7 +6,7 @@
 struct ColumnStore : m::Store
 {
     private:
-    /* TODO 1.3.1: Declare necessary fields. */
+    /* 1.3.1: Declare necessary fields. */
     size_t row_count = 0;
     std::vector<uintptr_t> columnBuffers;
 
