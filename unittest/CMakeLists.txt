@@ -4,4 +4,4 @@ add_executable(
     ColumnStoreTest.cpp
     RowStoreTest.cpp
 )
-target_link_libraries(unittest mutable $<TARGET_OBJECTS:dbsys20>)
+target_link_libraries(unittest $<TARGET_OBJECTS:dbsys20> mutable)
