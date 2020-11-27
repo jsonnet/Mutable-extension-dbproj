@@ -1,6 +1,5 @@
 #include "ColumnStore.hpp"
 
-
 ColumnStore::ColumnStore(const m::Table &table)
         : Store(table) {
     /* 1.3.1: Allocate columns for the attributes. */
@@ -14,7 +13,7 @@ ColumnStore::ColumnStore(const m::Table &table)
     /* 1.3.1: Allocate a column for the null bitmap. */
     auto bitmap_column = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(1, 1));
     bitmap_column->add_null_bitmap(0, 0);
-    auto bitmap_buffer = (uintptr_t) malloc(ceil((double) table.size() / 8));
+    auto bitmap_buffer = (uintptr_t) malloc(ceil((double) table.size() / 8) * 10000000); //buffer for a bitmap for each tuple inserted with num of attributes bits each
     // FIXME we also need to free this buffer!
 
     /* 1.3.2: Create linearization. */
