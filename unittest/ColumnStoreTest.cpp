@@ -85,7 +85,7 @@ TEST_CASE("ColumnStore/access", "[milestone1]")
     REQUIRE_FALSE(T.is_null(IDX(ATTR))); \
     CHECK((VALUE) == T.get(IDX(ATTR)).as_##TYPE())
 #define CHECK_CHAR(ATTR, VALUE) \
-    REQUIRE_FALSE(T.is_null(IDX("g_c"))); \
+    REQUIRE_FALSE(T.is_null(IDX(ATTR))); \
     CHECK(std::string(VALUE) == reinterpret_cast<char*>(T.get(IDX(ATTR)).as_p()))
 
         std::size_t num_tuples = 0;
