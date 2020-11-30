@@ -7,6 +7,10 @@ bool alignCompare(const std::tuple<size_t, size_t> &a, const std::tuple<size_t, 
     return std::get<0>(a) > std::get<0>(b);
 }
 
+//TODO move to hpp
+std::size_t master_stride_bytes;
+std::vector<std::tuple<size_t, size_t>> toSort;
+
 RowStore::RowStore(const m::Table &table)
         : Store(table) {
     /* 1.2.1: Allocate memory. */
@@ -15,7 +19,7 @@ RowStore::RowStore(const m::Table &table)
     size_t current_biggest_align = 0;
 
     // List of all attributes to be sorted
-    std::vector<std::tuple<size_t, size_t>> toSort;
+    //std::vector<std::tuple<size_t, size_t>> toSort;
     size_t index_counter = 0;
 
     // Check each attribute in table
@@ -42,21 +46,17 @@ RowStore::RowStore(const m::Table &table)
     // ?changes this to element of first?
     auto bytes_first_elem = (size_t) ceil((double) current_biggest_align / 8);
     auto paddRowSize = (bytes_first_elem - (row_total_bytes % bytes_first_elem)) % bytes_first_elem;
-    std::size_t master_stride_bytes = row_total_bytes + paddRowSize;
+    master_stride_bytes = row_total_bytes + paddRowSize;
 
     // Allocate memory
-    address = (uintptr_t) malloc(master_stride_bytes * 10000000); // 10 MB
-
-    // FIXME may not needed
-    Memory mem;
-    mem.allocator();
-    //mem.map();
+    address = malloc(master_stride_bytes * 10000000); // 10 MB
 
     /* 1.2.2: Create linearization. */
     auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
 
     // Create the row and add the correct attribute based on the sorted list
     auto row = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(numAttributes + 1, 1));
+
     size_t offset = 0;
     for (const auto &i : toSort) {
         row->add_sequence(offset, 0, table[std::get<1>(i)]);
@@ -68,7 +68,7 @@ RowStore::RowStore(const m::Table &table)
     row->add_null_bitmap(offset, 0);
 
     // Finalize linearization at allocated memory
-    lin->add_sequence(address, master_stride_bytes, std::move(row));
+    lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(address)), master_stride_bytes, std::move(row));
     linearization(std::move(lin));
 }
 
@@ -85,8 +85,26 @@ std::size_t RowStore::num_rows() const {
 //Append another tuple row dynamically
 void RowStore::append() {
     /* 1.2.1: Implement */
-    //TODO allocate memory dynamically
+    //TODO allocate memory dynamically, by building a new lin with bigger size ?!
     rows_used++;
+
+    //FIXME EXC BAD ACCESS ??? why
+/*
+    address = malloc(master_stride_bytes * 10000000); // 10 MB
+    auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
+
+    // Create the row and add the correct attribute based on the sorted list
+    auto row = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(this->table().size() + 1, 1));
+
+    size_t offset = 0;
+    for (const auto &i : toSort) {
+        row->add_sequence(offset, 0, this->table()[std::get<1>(i)]);
+        offset += this->table()[std::get<1>(i)].type->size();
+    }
+
+    lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(address)), master_stride_bytes, std::move(row));
+    linearization(std::move(lin));
+    */
 }
 
 void RowStore::drop() {

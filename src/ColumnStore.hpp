@@ -9,6 +9,7 @@ struct ColumnStore : m::Store
     /* 1.3.1: Declare necessary fields. */
     size_t row_count = 0;
     std::vector<uintptr_t> columnBuffers;
+    const size_t bufferSize = 10000000;  //TODO find a size
 
     public:
     ColumnStore(const m::Table &table);
