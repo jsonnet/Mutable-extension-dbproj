@@ -76,7 +76,7 @@ RowStore::RowStore(const m::Table &table)
 RowStore::~RowStore() {
     /* 1.2.1: Free allocated memory. */
     free((void *) address);
-    toSort.clear()
+    toSort.clear();
 }
 
 std::size_t RowStore::num_rows() const {
