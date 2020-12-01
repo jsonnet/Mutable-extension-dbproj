@@ -20,6 +20,7 @@ RowStore::RowStore(const m::Table &table)
 
     // List of all attributes to be sorted
     //std::vector<std::tuple<size_t, size_t>> toSort;
+    toSort.clear();
     size_t index_counter = 0;
 
     // Check each attribute in table
@@ -75,6 +76,7 @@ RowStore::RowStore(const m::Table &table)
 RowStore::~RowStore() {
     /* 1.2.1: Free allocated memory. */
     free((void *) address);
+    toSort.clear()
 }
 
 std::size_t RowStore::num_rows() const {
