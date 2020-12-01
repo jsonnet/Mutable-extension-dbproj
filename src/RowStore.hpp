@@ -3,7 +3,6 @@
 #include <mutable/mutable.hpp>
 #include <mutable/util/memory.hpp>
 
-
 struct RowStore : m::Store
 {
     private:
@@ -11,6 +10,10 @@ struct RowStore : m::Store
     void* address;
     size_t rows_used;
     size_t row_total_bytes;
+    size_t storable_in_buffer;
+
+    std::size_t master_stride_bytes;
+    std::vector<std::tuple<size_t, size_t>> toSort;
 
     public:
     RowStore(const m::Table &table);

@@ -8,8 +8,9 @@ struct ColumnStore : m::Store
     private:
     /* 1.3.1: Declare necessary fields. */
     size_t row_count = 0;
-    std::vector<uintptr_t> columnBuffers;
-    const size_t bufferSize = 10000000;  //TODO find a size
+    size_t storable_in_buffer;
+    std::vector<void*> columnBuffers;
+    void* bitmap_buffer;
 
     public:
     ColumnStore(const m::Table &table);
@@ -24,4 +25,8 @@ struct ColumnStore : m::Store
 
     void dump(std::ostream &out) const override;
     using Store::dump;
+
+    private:
+    void createLin();
+
 };

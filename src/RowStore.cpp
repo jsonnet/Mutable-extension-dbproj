@@ -7,20 +7,20 @@ bool alignCompare(const std::tuple<size_t, size_t> &a, const std::tuple<size_t, 
     return std::get<0>(a) > std::get<0>(b);
 }
 
-//TODO move to hpp
-std::size_t master_stride_bytes;
-std::vector<std::tuple<size_t, size_t>> toSort;
-
 RowStore::RowStore(const m::Table &table)
         : Store(table) {
     /* 1.2.1: Allocate memory. */
     std::size_t numAttributes = table.size();  //amount of attributes
     std::size_t current_offset = 0;
     size_t current_biggest_align = 0;
+    rows_used = 0;
+    //Set first buffer to size of 10 rows --> adding 11 rows would cause a dynamic relocation to a buffer *2
+    storable_in_buffer = 10;
+
 
     // List of all attributes to be sorted
     //std::vector<std::tuple<size_t, size_t>> toSort;
-    toSort.clear();
+    //toSort.clear();
     size_t index_counter = 0;
 
     // Check each attribute in table
@@ -50,7 +50,7 @@ RowStore::RowStore(const m::Table &table)
     master_stride_bytes = row_total_bytes + paddRowSize;
 
     // Allocate memory
-    address = malloc(master_stride_bytes * 10000000); // 10 MB
+    address = malloc(master_stride_bytes * storable_in_buffer); // 10 MB
 
     /* 1.2.2: Create linearization. */
     auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
@@ -63,7 +63,6 @@ RowStore::RowStore(const m::Table &table)
         row->add_sequence(offset, 0, table[std::get<1>(i)]);
         offset += table[std::get<1>(i)].type->size();
     }
-    rows_used = 0;
 
     // Add null bitmap
     row->add_null_bitmap(offset, 0);
@@ -76,7 +75,7 @@ RowStore::RowStore(const m::Table &table)
 RowStore::~RowStore() {
     /* 1.2.1: Free allocated memory. */
     free((void *) address);
-    toSort.clear();
+    //toSort.clear();
 }
 
 std::size_t RowStore::num_rows() const {
@@ -90,9 +89,12 @@ void RowStore::append() {
     //TODO allocate memory dynamically, by building a new lin with bigger size ?!
     rows_used++;
 
-    //FIXME EXC BAD ACCESS ??? why
-/*
-    address = malloc(master_stride_bytes * 10000000); // 10 MB
+    if (rows_used < storable_in_buffer) return;
+
+    //double buffer size
+    storable_in_buffer *= 2;
+
+    address = realloc(address, master_stride_bytes * storable_in_buffer); // 10 MB
     auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
 
     // Create the row and add the correct attribute based on the sorted list
@@ -104,9 +106,12 @@ void RowStore::append() {
         offset += this->table()[std::get<1>(i)].type->size();
     }
 
+    //insert bitmap
+    row->add_null_bitmap(offset, 0);
+
     lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(address)), master_stride_bytes, std::move(row));
     linearization(std::move(lin));
-    */
+
 }
 
 void RowStore::drop() {
