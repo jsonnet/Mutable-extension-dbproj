@@ -3,6 +3,7 @@
 ColumnStore::ColumnStore(const m::Table &table)
         : Store(table) {
 
+    // Initial rows
     storable_in_buffer = 10;
 
     /* 1.3.1: Allocate columns for the attributes. */
@@ -14,11 +15,10 @@ ColumnStore::ColumnStore(const m::Table &table)
     }
 
     /* 1.3.1: Allocate a column for the null bitmap. */
-    bitmap_buffer = malloc(ceil((double) this->table().size() / 8) * storable_in_buffer); //buffer for a bitmap for each tuple inserted with num of attributes bits each
-
+    bitmap_buffer = malloc(ceil((double) this->table().size() / 8) *
+                           storable_in_buffer); //buffer for a bitmap for each tuple inserted with num of attributes bits each
 
     createLin();
-
 }
 
 ColumnStore::~ColumnStore() {
@@ -35,31 +35,33 @@ std::size_t ColumnStore::num_rows() const {
 
 void ColumnStore::append() {
     /* 1.3.1: Implement */
-    //TODO allocate memory dynamically for all
+    // Increase used rows
     ++row_count;
 
+    // Check if enough memory is pre allocated
     if (row_count < storable_in_buffer) return;
-    storable_in_buffer *= 2;
+    // If not allocate 1.5*old_size (aka Java ArrayList)
+    storable_in_buffer = storable_in_buffer + (storable_in_buffer >> 1u);
 
+    // Create iterator over old buffers (to reallocate)
     auto buff_it = columnBuffers.cbegin();
-
     std::vector<void *> newBuffers;
 
     for (const auto &i : table()) {
-        // Create a buffer for each column/attribute
+        // For each attribute realloc
         size_t rowSizeBytes = ceil((double) i.type->size() / 8);
-        auto buffer =  realloc(*buff_it, rowSizeBytes * storable_in_buffer);
+        auto buffer = realloc(*buff_it, rowSizeBytes * storable_in_buffer);
         newBuffers.push_back(buffer);
 
         ++buff_it;
     }
 
-    //columnBuffers.erase(columnBuffers.begin(), buff_it);
+    // Overwrite with new vector
     columnBuffers = newBuffers;
 
-
     /* 1.3.1: Allocate a column for the null bitmap. */
-    bitmap_buffer = realloc(bitmap_buffer, ceil((double) this->table().size() / 8) * storable_in_buffer); //buffer for a bitmap for each tuple inserted with num of attributes bits each
+    bitmap_buffer = realloc(bitmap_buffer, ceil((double) this->table().size() / 8) *
+                                           storable_in_buffer); //buffer for a bitmap for each tuple inserted with num of attributes bits each
 
     createLin();
 }
@@ -75,6 +77,7 @@ void ColumnStore::dump(std::ostream &out) const {
     out << "Some useful data" << std::endl;
 }
 
+/** A custom function to create a linearization, but you need to fill columnBuffers and bitmap_buffer first **/
 void ColumnStore::createLin() {
     /* 1.3.1: Allocate a column for the null bitmap. */
     auto bitmap_column = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(1, 1));
@@ -99,7 +102,8 @@ void ColumnStore::createLin() {
         ++buff_it;
     }
     // Finally add the null bitmap
-    lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(bitmap_buffer)), ceil((double) table().size() / 8), std::move(bitmap_column));
+    lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(bitmap_buffer)), ceil((double) table().size() / 8),
+                      std::move(bitmap_column));
 
     linearization(std::move(lin));
 }

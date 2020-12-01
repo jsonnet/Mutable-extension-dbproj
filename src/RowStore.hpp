@@ -8,11 +8,12 @@ struct RowStore : m::Store
     private:
     /* 1.2.1: Declare necessary fields. */
     void* address;
-    size_t rows_used;
+    size_t rows_used = 0;
     size_t row_total_bytes;
     size_t storable_in_buffer;
 
     std::size_t master_stride_bytes;
+    // List of all attributes to be sorted
     std::vector<std::tuple<size_t, size_t>> toSort;
 
     public:

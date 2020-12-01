@@ -13,16 +13,11 @@ RowStore::RowStore(const m::Table &table)
     std::size_t numAttributes = table.size();  //amount of attributes
     std::size_t current_offset = 0;
     size_t current_biggest_align = 0;
-    rows_used = 0;
-    //Set first buffer to size of 10 rows --> adding 11 rows would cause a dynamic relocation to a buffer *2
+
+    //Set first buffer to size of 10 rows
     storable_in_buffer = 10;
 
-
-    // List of all attributes to be sorted
-    //std::vector<std::tuple<size_t, size_t>> toSort;
-    //toSort.clear();
     size_t index_counter = 0;
-
     // Check each attribute in table
     for (const auto &i : table) {
         // Attribute size added to current offset in bits
@@ -49,8 +44,8 @@ RowStore::RowStore(const m::Table &table)
     auto paddRowSize = (bytes_first_elem - (row_total_bytes % bytes_first_elem)) % bytes_first_elem;
     master_stride_bytes = row_total_bytes + paddRowSize;
 
-    // Allocate memory
-    address = malloc(master_stride_bytes * storable_in_buffer); // 10 MB
+    // Allocate memory (just with an initial size)
+    address = malloc(master_stride_bytes * storable_in_buffer);
 
     /* 1.2.2: Create linearization. */
     auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
@@ -75,7 +70,6 @@ RowStore::RowStore(const m::Table &table)
 RowStore::~RowStore() {
     /* 1.2.1: Free allocated memory. */
     free((void *) address);
-    //toSort.clear();
 }
 
 std::size_t RowStore::num_rows() const {
@@ -86,15 +80,17 @@ std::size_t RowStore::num_rows() const {
 //Append another tuple row dynamically
 void RowStore::append() {
     /* 1.2.1: Implement */
-    //TODO allocate memory dynamically, by building a new lin with bigger size ?!
+    // Increase row size
     rows_used++;
 
+    // if we have enough storage left in buffer -> all good
     if (rows_used < storable_in_buffer) return;
 
-    //double buffer size
-    storable_in_buffer *= 2;
+    //if not -> grow buffer size, 1.5*old_size (aka Java ArrayList)
+    storable_in_buffer = storable_in_buffer + (storable_in_buffer >> 1u);
 
-    address = realloc(address, master_stride_bytes * storable_in_buffer); // 10 MB
+    // realloc new memory and create a new linearization
+    address = realloc(address, master_stride_bytes * storable_in_buffer);
     auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
 
     // Create the row and add the correct attribute based on the sorted list
@@ -106,12 +102,11 @@ void RowStore::append() {
         offset += this->table()[std::get<1>(i)].type->size();
     }
 
-    //insert bitmap
+    // Add null bitmap
     row->add_null_bitmap(offset, 0);
 
     lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(address)), master_stride_bytes, std::move(row));
     linearization(std::move(lin));
-
 }
 
 void RowStore::drop() {

@@ -9,6 +9,7 @@ struct ColumnStore : m::Store
     /* 1.3.1: Declare necessary fields. */
     size_t row_count = 0;
     size_t storable_in_buffer;
+
     std::vector<void*> columnBuffers;
     void* bitmap_buffer;
 
