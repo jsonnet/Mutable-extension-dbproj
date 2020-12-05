@@ -11,6 +11,7 @@ struct RowStore : m::Store
     size_t rows_used = 0;
     size_t row_total_bytes;
     size_t storable_in_buffer;
+    size_t previous_buffer_size;
 
     std::size_t master_stride_bytes;
     // List of all attributes to be sorted

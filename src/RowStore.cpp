@@ -86,7 +86,8 @@ void RowStore::append() {
     // if we have enough storage left in buffer -> all good
     if (rows_used < storable_in_buffer) return;
 
-    //if not -> grow buffer size, 1.5*old_size (aka Java ArrayList)
+    //if not -> grow buffer size, 1.5*old_size (aka nearly golden ratio)
+    previous_buffer_size = storable_in_buffer;
     storable_in_buffer = storable_in_buffer + (storable_in_buffer >> 1u);
 
     // realloc new memory and create a new linearization
@@ -111,8 +112,33 @@ void RowStore::append() {
 
 void RowStore::drop() {
     /* 1.2.1: Implement */
-    //TODO decrease memory dynamically
     rows_used--;
+
+    // if we have enough storage left in buffer -> all good
+    if (rows_used > previous_buffer_size) return;
+
+    //if not -> grow buffer size, 1.5*old_size (aka nearly golden ratio)
+    storable_in_buffer = previous_buffer_size;
+    previous_buffer_size = ceil(storable_in_buffer / 1.5);
+
+    // realloc new memory and create a new linearization
+    address = realloc(address, master_stride_bytes * storable_in_buffer);
+    auto lin = std::make_unique<m::Linearization>(m::Linearization::CreateInfinite(1));
+
+    // Create the row and add the correct attribute based on the sorted list
+    auto row = std::make_unique<m::Linearization>(m::Linearization::CreateFinite(this->table().size() + 1, 1));
+
+    size_t offset = 0;
+    for (const auto &i : toSort) {
+        row->add_sequence(offset, 0, this->table()[std::get<1>(i)]);
+        offset += this->table()[std::get<1>(i)].type->size();
+    }
+
+    // Add null bitmap
+    row->add_null_bitmap(offset, 0);
+
+    lin->add_sequence(uint64_t(reinterpret_cast<uintptr_t>(address)), master_stride_bytes, std::move(row));
+    linearization(std::move(lin));
 }
 
 void RowStore::dump(std::ostream &out) const {
