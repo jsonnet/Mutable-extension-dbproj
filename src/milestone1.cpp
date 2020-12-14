@@ -40,7 +40,7 @@ int main(int argc, const char **argv)
     auto &DB = C.add_database(C.pool("dbsys20"));
     C.set_database_in_use(DB);
 
-    /* Create table 'T'. */
+    /* Create table 'packages'. */
     auto &T = DB.add_table(C.pool("packages"));
     T.push_back(C.pool("id"),           m::Type::Get_Integer(m::Type::TY_Vector, 4));
     T.push_back(C.pool("repo"),         m::Type::Get_Char(m::Type::TY_Vector, 10));
