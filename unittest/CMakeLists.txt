@@ -1,6 +1,7 @@
 add_executable(
     unittest
     main.cpp
+    BPlusTreeTest.cpp
     ColumnStoreTest.cpp
     RowStoreTest.cpp
 )
