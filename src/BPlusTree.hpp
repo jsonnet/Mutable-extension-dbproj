@@ -40,11 +40,11 @@ struct BPlusTree
     struct leaf_node;
 
     private:
-    /* TODO: 2.1.4.1
+    /*
      *
      * Declare fields of the B+-tree.
      */
-
+    struct inner_node root;
 
     /*--- Iterator ---------------------------------------------------------------------------------------------------*/
     private:
@@ -77,10 +77,15 @@ struct BPlusTree
          * @return this iterator
          */
         the_iterator & operator++() {
-            /* TODO: 2.1.2.4
-             * Advance this iterator to the next entry.  The behaviour is undefined if no next entry exists.
-             */
-            assert(false && "not implemented");
+
+            if (node_->cend() == elem_){
+                node_ = node_->next();
+                elem_ = node_->begin();
+            } else {
+                //normal case: get next element of leaf
+                ++elem_;    //TODO: check if this works or elem += sizeof(elem_type)
+            }
+
         }
 
         /** Advances the iterator to the next element.
@@ -128,10 +133,10 @@ struct BPlusTree
          * @return this iterator
          */
         the_leaf_iterator & operator++() {
-            /* TODO: 2.1.2.4
+            /*
              * Advance this iterator to the next leaf.  The behaviour is undefined if no next leaf exists.
              */
-            assert(false && "not implemented");
+            node_ = node_->next();
         }
 
         /** Advances the iterator to the next element.
@@ -198,20 +203,22 @@ struct BPlusTree
         }
 
         private:
-        /* TODO: 2.1.3.1
-         * Declare the fields of an inner node.
-         */
+        key_type keys[COMPUTE_CAPACITY()-1];
+        void* children[COMPUTE_CAPACITY()];     //can either be inner_node* or leaf_node*
+        size_type current_capacity = 0;
 
         public:
         /** Returns the number of children. */
         size_type size() const {
-            /* TODO: 2.1.3.3 */
-            assert(false && "not implemented");
+            return current_capacity;
         }
         /** Returns true iff the inner node is full, i.e. capacity is reached. */
         bool full() const {
-            /* TODO: 2.1.3.3 */
-            assert(false && "not implemented");
+            return current_capacity == COMPUTE_CAPACITY();
+        }
+
+        size_type getNumberChildren() const {
+            return COMPUTE_CAPACITY();
         }
     };
 
@@ -231,70 +238,63 @@ struct BPlusTree
         }
 
         private:
-        /* TODO: 2.1.2.1
-         * Declare the fields of a leaf node.
-         */
+        value_type values[COMPUTE_CAPACITY()];
+        struct leaf_node* next_ptr; //for ISAM
+        size_type num_values = 0;  //Number of values currently contained!
 
         public:
         /** Returns the number of entries. */
         size_type size() const {
-            /* TODO: 2.1.2.3 */
-            assert(false && "not implemented");
+            return num_values;
         }
         /** Returns true iff the leaf is empty, i.e. has zero entries. */
         bool empty() const {
-            /* TODO: 2.1.2.3 */
-            assert(false && "not implemented");
+            return num_values == 0;
         }
         /** Returns true iff the leaf is full, i.e. the capacity is reached. */
         bool full() const {
-            /* TODO: 2.1.2.3 */
-            assert(false && "not implemented");
+            return num_values == COMPUTE_CAPACITY();
         }
         /** Returns a pointer to the next leaf node in the ISAM or `nullptr` if there is no next leaf node. */
         leaf_node * next() const {
-            /* TODO: 2.1.2.3 */
-            assert(false && "not implemented");
+            return next_ptr;
         }
         /** Sets the pointer to the next leaf node in the ISAM.  Returns the previously set value.
          *
          * @return the previously set next leaf
          */
         leaf_node * next(leaf_node *new_next) {
-            /* TODO: 2.1.2.3 */
-            assert(false && "not implemented");
+            next_ptr = new_next;
+
+            return next_ptr; //TODO: return new or old pointer?????
         }
 
         /** Returns an iterator to the first entry in the leaf. */
         entry_type * begin() {
-            /* TODO: 2.1.2.4 */
-            assert(false && "not implemented");
+            return &values[0];
         }
         /** Returns an iterator to the entry following the last entry in the leaf. */
         entry_type * end() {
-            /* TODO: 2.1.2.4 */
-            assert(false && "not implemented");
+            return &values[num_values];
         }
         /** Returns an iterator to the first entry in the leaf. */
         const entry_type * begin() const {
-            /* TODO: 2.1.2.4 */
-            assert(false && "not implemented");
+            return &values[0];
         }
         /** Returns an iterator to the entry following the last entry in the leaf. */
         const entry_type * end() const {
-            /* TODO: 2.1.2.4 */
-            assert(false && "not implemented");
+            return &values[num_values];
         }
         /** Returns an iterator to the first entry in the leaf. */
         const entry_type * cbegin() const {
-            /* TODO: 2.1.2.4 */
-            assert(false && "not implemented");
+            return &values[0];
         }
         /** Returns an iterator to the entry following the last entry in the leaf. */
         const entry_type * cend() const {
-            /* TODO: 2.1.2.4 */
-            assert(false && "not implemented");
+            return &values[num_values];
         }
+
+
     };
 
     /*--- Factory methods --------------------------------------------------------------------------------------------*/
@@ -316,6 +316,8 @@ struct BPlusTree
 
 
     /*--- Start of B+-Tree code --------------------------------------------------------------------------------------*/
+
+
     private:
     BPlusTree() {
         /* TODO: 2.1.4.1 */
@@ -332,13 +334,26 @@ struct BPlusTree
 
     /** Returns the number of entries. */
     size_type size() const {
-        /* TODO: 2.1.4.2 */
-        assert(false && "not implemented");
+        size_type size = 0;
+
+        //Go through every leaf and count the entries
+        auto li = cleaves_begin();
+        while (li != nullptr){
+            size += li.node_->size();
+            li = li.operator++();
+        }
+
+        return size;
     }
     /** Returns the height of the tree, i.e. the number of edges on the longest path from leaf to root. */
     size_type height() const {
         /* TODO: 2.1.4.2 */
         assert(false && "not implemented");
+
+        size_type fanout = root.getNumberChildren();
+        size_type numberOfLeafes = 0;
+
+        return ceil((log(numberOfLeafes * 1.0))/log(fanout));
     }
 
     /** Returns an iterator to the first entry in the tree. */
