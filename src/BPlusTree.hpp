@@ -199,7 +199,21 @@ struct BPlusTree
              * When computing the capacity of a inner nodes, consider *all fields and padding* in your computation.  For
              * *fundamental types*, the size equals the alignment requirement of that type.
              */
-            return 0;
+
+            size_type capacity = 0;
+            size_type valueSize = sizeof(key_type);
+
+            size_type biggest = (sizeof (void*) > sizeof(size_type)) ? sizeof(void*) : sizeof(size_type);
+
+            //Compare with largest element of the struct since everything is padded to this element
+            if (valueSize > biggest){
+                capacity = (64 - biggest - sizeof(leaf_node*)) / (valueSize *2); //TODO: round down?
+            } else {
+                capacity = (64 - biggest - sizeof(leaf_node*)) / (biggest*2);
+            }
+
+
+            return capacity;
         }
 
         private:
@@ -220,6 +234,21 @@ struct BPlusTree
         size_type getNumberChildren() const {
             return COMPUTE_CAPACITY();
         }
+
+        /* own functions */
+        void * popChild(){
+            //TODO: implement
+            return nullptr;
+        }
+
+        void insert(void * child){
+            //TODO: implement
+        }
+
+        bool hasBTreeProperty(){
+            //TODO: implement
+            return false;
+        }
     };
 
     /** Implements a leaf node in a B+-Tree.  A leaf node stores key-value-pairs.  */
@@ -227,20 +256,32 @@ struct BPlusTree
     {
         private:
         static constexpr size_type COMPUTE_CAPACITY() {
-            /* TODO: 2.1.2.2
+            /* TODO: change if more attributes are added
              * Compute the capacity of leaf nodes.  The capacity is the number of key-value-pairs a leaf node can
              * contain.  If the capacity is *n*, the leaf node can contain *n* key-value-pairs.
              * When computing the capacity of inner nodes, consider *all fields and padding* in your computation.  Use
              * `sizeof` to get the size of a field.  For *fundamental types*, the size equals the alignment requirement
              * of that type.
              */
-            return 0;
+            size_type valueSize = sizeof(value_type);
+            size_type capacity = 0;
+
+            size_type biggest = (sizeof (size_type) > sizeof(leaf_node*)) ? sizeof(size_type) : sizeof(leaf_node*);
+
+            //Compare with largest element of the struct since everything is padded to this element
+            if (valueSize > biggest){
+                capacity = (64 - biggest - sizeof(leaf_node*)) / valueSize; //TODO: round down?
+            } else {
+                capacity = (64 - biggest - sizeof(leaf_node*)) / biggest;
+            }
+
+            return capacity;
         }
 
         private:
         value_type values[COMPUTE_CAPACITY()];
-        struct leaf_node* next_ptr; //for ISAM
         size_type num_values = 0;  //Number of values currently contained!
+        leaf_node* next_ptr; //for ISAM
 
         public:
         /** Returns the number of entries. */
@@ -291,21 +332,150 @@ struct BPlusTree
         }
         /** Returns an iterator to the entry following the last entry in the leaf. */
         const entry_type * cend() const {
-            return &values[num_values];
+            //return &values[num_values];
+            return nullptr;
         }
 
+        /* own functions */
+        entry_type popLast(){
+            //TODO: implement
+            return nullptr;
+        }
 
+        bool insert(entry_type e){
+            //TODO: implement
+            return false;
+        }
+
+        bool hasBTreeProperty(){
+            //TODO: implement
+            return false;
+        }
     };
 
     /*--- Factory methods --------------------------------------------------------------------------------------------*/
     template<typename It>
     static BPlusTree Bulkload(It begin, It end) {
-        /* TODO: 2.1.4.4
-         *
+        /*
          * Bulkload the B+-tree with the values in the range [begin, end).  The iterators of type `It` are *random
          * access iterators*.  The elements being iterated are `std::pair<key_type, mapped_type>`.
          */
-        assert(false && "not implemented");
+
+        /* create leaves first */
+        std::vector<leaf_node> leaves;
+
+        while(begin != end){
+            leaf_node newLeaf = leaf_node();
+            while(!newLeaf.full()){
+
+                //Check if there are new elements to be inserted
+                if (begin == end){
+                    leaf_node prev = leaves.back();
+
+                    //Ensure that last leaf has BTree property
+                    while (!newLeaf.hasBTreeProperty()){
+                        entry_type  e = prev.popLast();
+                        newLeaf.insert(e);
+                    }
+                    //break while(!newLeaf.full()) else we are stuck on last leaf
+                    break;
+                }
+
+                newLeaf.insert(*begin);
+                ++begin;
+            }
+
+            //Add full leaf to output
+            leaves.push_back(begin);
+        }
+
+        /* handle first level */
+
+        std::vector<inner_node> outputNodes;
+        bool endLeaveConnection = false;
+
+        //Handle every node of this level
+        for(auto i=0; i<leaves.size(); i++){
+            bool processNode = true;
+            inner_node n = inner_node();
+            endLeaveConnection = true;
+
+            while (processNode){
+                if (leaves.empty()){
+                    endLeaveConnection = true;
+
+                    inner_node prev = outputNodes.back();
+
+                    while (!n.hasBTreeProperty()){
+                        leaf_node* child = (leaf_node*) prev.popChild();
+                        n.insert(child);
+                    }
+                }
+
+                leaf_node* tmp = leaves.back();
+                n.insert(tmp);
+
+                processNode = endLeaveConnection ? false : !n.full();
+            }
+
+            outputNodes.push_back(n);
+        }
+
+
+
+        /* insert nodes */
+        std::vector<inner_node> inputNodes;
+        inputNodes = outputNodes;
+
+        bool finished = false, endIteration = false;
+
+        while (!finished){
+
+            //Handle every node of this level
+            for(auto i=0; i<inputNodes.size(); i++){
+                bool processNode = true;
+                inner_node n;
+                endIteration = true;
+
+                while (processNode){
+                    if (inputNodes.empty()){
+                        endIteration = true;
+
+                        inner_node prev = outputNodes.back();
+
+                        while (!n.hasBTreeProperty()){
+                            inner_node child = (inner_node)prev.popChild();
+                            n.insert(child);
+                        }
+                    }
+
+                    inner_node* tmp = inputNodes.back();
+                    n.insert(tmp);
+
+                    processNode = endIteration ? false : !n.full();
+                }
+
+                outputNodes.push_back(n);
+            }
+
+            //If level is finished and only one node is left, it is the root node of the tree --> end building tree here!
+            if (inputNodes.size() <= 1){
+                finished = true;
+            }
+
+            //prepare for next level: output is the new input
+            inputNodes = outputNodes;
+            outputNodes = {};
+
+        }
+
+        inner_node root = inputNodes.front();
+
+
+        //TODO: create BTree here with root node and return!
+        BPlusTree bPlusTree = BPlusTree(root);
+        return bPlusTree;
+
     }
 
     template<typename Container>
@@ -319,8 +489,8 @@ struct BPlusTree
 
 
     private:
-    BPlusTree() {
-        /* TODO: 2.1.4.1 */
+    BPlusTree(inner_node rootNode) {
+        root = rootNode;
     }
 
     public:
