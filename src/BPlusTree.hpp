@@ -34,6 +34,7 @@ public:
         }
     };
 
+    struct tree_node;
     struct inner_node;
     struct leaf_node;
 
@@ -194,8 +195,13 @@ public:
     using const_range = the_range<true>;
 
     /*--- Tree Node Data Types ---------------------------------------------------------------------------------------*/
+    struct tree_node {
+    public:
+        void cleanUP() { };
+    };
+
     /** Implements an inner node in a B+-Tree.  An inner node stores k-1 keys that distinguish the k child pointers. */
-    struct inner_node {
+    struct inner_node : tree_node {
     private:
         static constexpr size_type COMPUTE_CAPACITY() {
             /* TODO: 2.1.3.2
@@ -275,10 +281,21 @@ public:
         bool hasBTreeProperty() {
             return this->current_capacity >= ceil(COMPUTE_CAPACITY() * 1.0 / 2);
         }
+
+        void cleanUP(){
+            for (auto i=0; i<current_capacity; i++){
+                if (children[i] != nullptr){
+                    reinterpret_cast<tree_node*>(children[i])->cleanUP();
+                    delete (children[i]);
+                }
+            }
+
+
+        }
     };
 
     /** Implements a leaf node in a B+-Tree.  A leaf node stores key-value-pairs.  */
-    struct leaf_node {
+    struct leaf_node : tree_node {
     private:
         static constexpr size_type COMPUTE_CAPACITY() {
             /* TODO: change if more attributes are added
@@ -306,7 +323,7 @@ public:
     private:
         entry_type values[COMPUTE_CAPACITY()];
         size_type num_values = 0;  //Number of values currently contained!
-        leaf_node *next_ptr = nullptr; //for ISAM
+        leaf_node *nextptr = nullptr; //for ISAM
 
     public:
         /** Returns the number of entries. */
@@ -326,7 +343,7 @@ public:
 
         /** Returns a pointer to the next leaf node in the ISAM or `nullptr` if there is no next leaf node. */
         leaf_node *next() const {
-            return next_ptr;
+            return nextptr;
         }
 
         /** Sets the pointer to the next leaf node in the ISAM.  Returns the previously set value.
@@ -334,9 +351,9 @@ public:
          * @return the previously set next leaf
          */
         leaf_node *next(leaf_node *new_next) {
-            next_ptr = new_next;
+            nextptr = new_next;
 
-            return next_ptr; //TODO: return new or old pointer?????
+            return nextptr; //TODO: return new or old pointer?????
         }
 
         /** Returns an iterator to the first entry in the leaf. */
@@ -386,6 +403,14 @@ public:
         bool hasBTreeProperty() {
             return this->num_values >= ceil(COMPUTE_CAPACITY() * 1.0 / 2);
         }
+
+        void setNextLeaf(leaf_node* _nextptr){
+            nextptr = _nextptr;
+        }
+
+        void cleanUP(){
+            //Nothing to do
+        }
     };
 
     /*--- Factory methods --------------------------------------------------------------------------------------------*/
@@ -398,9 +423,15 @@ public:
 
         /* create leaves first */
         auto leaves = std::vector<leaf_node *>();
+        leaf_node* prev = nullptr;
 
         while (begin != end) {
             leaf_node *newLeaf = new leaf_node();
+            if (prev != nullptr) prev->setNextLeaf(newLeaf);
+            prev = newLeaf;
+
+
+
             while (!newLeaf->full()) {
 
                 //do not insert when begin==end
@@ -549,7 +580,10 @@ public:
 
     ~BPlusTree() {
         /* TODO: 2.1.4.1 */
-        //assert(false && "not implemented");
+        
+        root.cleanUP();
+        //if root was a pointer initialized with new, also delete
+
     }
 
     /** Returns the number of entries. */
