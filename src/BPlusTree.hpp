@@ -202,6 +202,7 @@ private:
         virtual ~tree_node() = default;;
         virtual void cleanUP() = 0;
         virtual bool isLeaf() = 0;
+        virtual key_type getHighestKey() = 0;
     };
 
 public:
@@ -269,6 +270,14 @@ public:
             if (this->full()) return false;
 
             children[current_capacity] = child;
+
+            //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
+            //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
+
+            if (current_capacity != COMPUTE_CAPACITY()){
+                keys[current_capacity] = reinterpret_cast<tree_node*>(children[current_capacity])->getHighestKey();
+            }
+
             current_capacity++;
 
             return true;
@@ -279,8 +288,16 @@ public:
             if (this->full()) return false;
 
             children[current_capacity] = child;
-            current_capacity++;
 
+
+            //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
+            //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
+
+            if (current_capacity != COMPUTE_CAPACITY()){
+                keys[current_capacity] = reinterpret_cast<tree_node*>(children[current_capacity])->getHighestKey();
+            }
+
+            current_capacity++;
             return true;
         }
 
@@ -304,6 +321,11 @@ public:
 
         bool isLeaf() {
             return false;
+        }
+
+        /* Returns the heighest key of the subtree*/
+        key_type getHighestKey() {
+            return reinterpret_cast<tree_node*>(children[current_capacity-1])->getHighestKey();
         }
     };
 
@@ -427,6 +449,10 @@ public:
 
         bool isLeaf() {
             return true;
+        }
+
+        key_type getHighestKey(){
+            return values[num_values-1].first;
         }
     };
 
@@ -598,7 +624,7 @@ public:
     ~BPlusTree() {
         /* TODO: 2.1.4.1 */
 
-        root.cleanUP();
+        //root.cleanUP();
         //if root was a pointer initialized with new, also delete
 
     }
