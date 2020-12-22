@@ -479,7 +479,7 @@ public:
         std::vector<inner_node *> outputNodes;
 
         //Handle every node of this level
-        for (size_t i = 0; i < leaves.size(); i++) {
+        for (size_t i = 0; i < leaves.size(); ) {
             auto n = new inner_node();
 
             while (!n->full() && i < leaves.size()) {
@@ -508,15 +508,14 @@ public:
         /* insert nodes */
         std::vector<inner_node *> inputNodes;
         inputNodes = outputNodes;
+        outputNodes.clear();
 
-        bool finished = false, endIteration = false;
-
-        assert(!finished);
+        bool finished = outputNodes.size() == 1;
 
         while (!finished) {
 
             //Handle every node of this level
-            for (size_type i = 0; i < inputNodes.size(); i++) {
+            for (size_type i = 0; i < inputNodes.size(); ) {
                 auto n = new inner_node();
 
                 while (!n->full() && i < inputNodes.size()) {
@@ -584,6 +583,7 @@ private:
 
     /* Constructor for empty tree */
     BPlusTree() {
+        root = inner_node();
         numLeaves = 0;
         leaf_node *dummy = new leaf_node();
         bottom_right_leaf = *dummy;
