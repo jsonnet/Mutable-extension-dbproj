@@ -661,72 +661,62 @@ public:
     /** Returns an iterator to the first entry in the tree. */
     iterator begin() {
         /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
-
+        return iterator(&bottom_left_leaf, bottom_left_leaf.begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     iterator end() {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return iterator (&bottom_right_leaf, bottom_right_leaf.end());
     }
 
     /** Returns an iterator to the first entry in the tree. */
     const_iterator begin() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_iterator (&bottom_left_leaf, bottom_left_leaf.begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     const_iterator end() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_iterator (&bottom_right_leaf, bottom_right_leaf.end());
     }
 
     /** Returns an iterator to the first entry in the tree. */
     const_iterator cbegin() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_iterator (&bottom_left_leaf, bottom_left_leaf.begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     const_iterator cend() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_iterator (&bottom_right_leaf, bottom_right_leaf.end());
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     leaf_iterator leaves_begin() {
-        return &bottom_left_leaf;
+        return leaf_iterator(&bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     leaf_iterator leaves_end() {
-        return bottom_right_leaf.next();
+        return leaf_iterator (bottom_right_leaf.next());
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     const_leaf_iterator leaves_begin() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_leaf_iterator (&bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     const_leaf_iterator leaves_end() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_leaf_iterator (&bottom_right_leaf);
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     const_leaf_iterator cleaves_begin() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_leaf_iterator (&bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     const_leaf_iterator cleaves_end() const {
-        /* TODO: 2.1.4.3 */
-        assert(false && "not implemented");
+        return const_leaf_iterator (&bottom_right_leaf);
     }
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
