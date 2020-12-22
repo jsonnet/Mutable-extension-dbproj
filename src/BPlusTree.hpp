@@ -45,10 +45,10 @@ private:
      */
     struct tree_node;
 
-    struct inner_node* root;
+    struct inner_node *root;
     size_type numLeaves;
-    leaf_node* bottom_left_leaf;
-    leaf_node* bottom_right_leaf;
+    leaf_node *bottom_left_leaf;
+    leaf_node *bottom_right_leaf;
 
     /*--- Iterator ---------------------------------------------------------------------------------------------------*/
 private:
@@ -200,8 +200,11 @@ public:
 private:
     struct tree_node {
         virtual ~tree_node() = default;;
+
         virtual void cleanUP() = 0;
+
         virtual bool isLeaf() = 0;
+
         virtual key_type getHighestKey() = 0;
     };
 
@@ -219,20 +222,22 @@ public:
              * *fundamental types*, the size equals the alignment requirement of that type.
              */
 
-            size_type biggest_tmp = (sizeof(void *) > sizeof(size_type)) ? sizeof(void *) : sizeof(size_type);
+            //FIXME always false!! void * has fixed size and is always smaller!
+            //size_type biggest_tmp = (sizeof(void *) > sizeof(size_type)) ? sizeof(void *) : sizeof(size_type);
+            size_type biggest_tmp = sizeof(size_type);
             size_type biggest = sizeof(key_type) > biggest_tmp ? sizeof(key_type) : biggest_tmp;
 
             size_type capacity = 0;
             bool found = false;
-            while(!found){
-                size_type no_padding = sizeof(size_type) + sizeof(leaf_node*) + sizeof(void*) * capacity + sizeof(key_type) * (capacity-1);
+            while (!found) {
+                size_type no_padding = sizeof(size_type) + sizeof(leaf_node *) + sizeof(void *) * capacity +
+                                       sizeof(key_type) * (capacity - 1);
                 size_type padding = biggest - (no_padding % biggest);
 
-                if  ((no_padding + padding) > 64) {
+                if ((no_padding + padding) > 64)
                     found = true;
-                }else {
+                else
                     capacity++;
-                }
             }
 
             return --capacity;
@@ -240,21 +245,21 @@ public:
 
     private:
         key_type keys[COMPUTE_CAPACITY() - 1];
-        void *children[COMPUTE_CAPACITY()];     //can either be inner_node* or leaf_node*
+        void *children[COMPUTE_CAPACITY()]{};  //can either be inner_node* or leaf_node*
         size_type current_capacity = 0;
 
     public:
         /** Returns the number of children. */
-        size_type size() const {
+        [[nodiscard]] size_type size() const {
             return current_capacity;
         }
 
         /** Returns true iff the inner node is full, i.e. capacity is reached. */
-        bool full() const {
+        [[nodiscard]] bool full() const {
             return current_capacity == COMPUTE_CAPACITY();
         }
 
-        size_type getNumberChildren() const {
+        [[nodiscard]] size_type getNumberChildren() const {
             return COMPUTE_CAPACITY();
         }
 
@@ -277,12 +282,10 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity != COMPUTE_CAPACITY()){
-                keys[current_capacity] = reinterpret_cast<tree_node*>(children[current_capacity])->getHighestKey();
-            }
+            if (current_capacity != COMPUTE_CAPACITY())
+                keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
-
             return true;
         }
 
@@ -292,13 +295,11 @@ public:
 
             children[current_capacity] = child;
 
-
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity != COMPUTE_CAPACITY()){
-                keys[current_capacity] = reinterpret_cast<tree_node*>(children[current_capacity])->getHighestKey();
-            }
+            if (current_capacity != COMPUTE_CAPACITY())
+                keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
             return true;
@@ -308,15 +309,15 @@ public:
             return this->current_capacity >= ceil(COMPUTE_CAPACITY() * 1.0 / 2);
         }
 
-        void cleanUP(){
-            for (size_type i=0; i<current_capacity; i++){
-                if (children[i] != nullptr){
-                    reinterpret_cast<tree_node*>(children[i])->cleanUP();
+        void cleanUP() {
+            for (size_type i = 0; i < current_capacity; i++) {
+                if (children[i] != nullptr) {
+                    reinterpret_cast<tree_node *>(children[i])->cleanUP();
 
-                    if (reinterpret_cast<tree_node*>(children[i])->isLeaf()){
-                        delete (reinterpret_cast<leaf_node*>(children[i]));
+                    if (reinterpret_cast<tree_node *>(children[i])->isLeaf()) {
+                        delete (reinterpret_cast<leaf_node *>(children[i]));
                     } else {
-                        delete (reinterpret_cast<inner_node*>(children[i]));
+                        delete (reinterpret_cast<inner_node *>(children[i]));
                     }
                 }
             }
@@ -328,7 +329,7 @@ public:
 
         /* Returns the heighest key of the subtree*/
         key_type getHighestKey() {
-            return reinterpret_cast<tree_node*>(children[current_capacity-1])->getHighestKey();
+            return reinterpret_cast<tree_node *>(children[current_capacity - 1])->getHighestKey();
         }
     };
 
@@ -343,21 +344,21 @@ public:
              * `sizeof` to get the size of a field.  For *fundamental types*, the size equals the alignment requirement
              * of that type.
              */
+            // FIXME check clangTidy don't we want the size of the value behind the pointer not the size of a pointer?
             size_type size_entry = sizeof(entry_type);
             size_type biggest_tmp = (sizeof(size_type) > sizeof(leaf_node *)) ? sizeof(size_type) : sizeof(leaf_node *);
-            size_type  biggest = biggest_tmp > size_entry ? biggest_tmp : size_entry;
+            size_type biggest = biggest_tmp > size_entry ? biggest_tmp : size_entry;
 
             size_type capacity = 0;
             bool found = false;
-            while(!found){
-                size_type no_padding = sizeof(size_type) + sizeof(leaf_node*) + sizeof(entry_type) * capacity;
+            while (!found) {
+                size_type no_padding = sizeof(size_type) + sizeof(leaf_node *) + sizeof(entry_type) * capacity;
                 size_type padding = biggest - (no_padding % biggest);
 
-                if  ((no_padding + padding) > 64) {
+                if ((no_padding + padding) > 64)
                     found = true;
-                }else {
+                else
                     capacity++;
-                }
             }
 
             //since we stop with the capacity that results in the first bigger struct, return the next lower capacity
@@ -397,8 +398,7 @@ public:
          */
         leaf_node *next(leaf_node *new_next) {
             nextptr = new_next;
-
-            return nextptr; //TODO: return new or old pointer?????
+            return nextptr; //FIXME: return new or old pointer????? read above
         }
 
         /** Returns an iterator to the first entry in the leaf. */
@@ -439,9 +439,7 @@ public:
         bool insert(entry_type e) {
             if (this->full()) return false;
 
-            values[num_values] = e;
-            num_values++;
-
+            values[num_values++] = e;
             return true;
         }
 
@@ -449,11 +447,11 @@ public:
             return this->num_values >= ceil(COMPUTE_CAPACITY() * 1.0 / 2);
         }
 
-        void setNextLeaf(leaf_node* _nextptr){
+        void setNextLeaf(leaf_node *_nextptr) {
             nextptr = _nextptr;
         }
 
-        void cleanUP(){
+        void cleanUP() {
             //Nothing to do
         }
 
@@ -461,8 +459,8 @@ public:
             return true;
         }
 
-        key_type getHighestKey(){
-            return values[num_values-1].first;
+        key_type getHighestKey() {
+            return values[num_values - 1].first;
         }
     };
 
@@ -476,17 +474,14 @@ public:
 
         /* create leaves first */
         auto leaves = std::vector<leaf_node *>();
-        leaf_node* prev = nullptr;
+        leaf_node *prev = nullptr;
 
         while (begin != end) {
             leaf_node *newLeaf = new leaf_node();
             if (prev != nullptr) prev->setNextLeaf(newLeaf);
             prev = newLeaf;
 
-
-
             while (!newLeaf->full()) {
-
                 //do not insert when begin==end
                 if (begin == end) {
                     //Check if there are new elements to be inserted
@@ -494,18 +489,13 @@ public:
                         leaf_node *prev = leaves.back();
 
                         //Ensure that last leaf has BTree property
-                        while (!newLeaf->hasBTreeProperty()) {
-                            entry_type e = prev->popLast();
-                            newLeaf->insert(e);
-                        }
+                        while (!newLeaf->hasBTreeProperty())
+                            newLeaf->insert(prev->popLast());
                     }
-
                     //break while(!newLeaf.full()) else we are stuck on last leaf
                     break;
-                } else {
-                    newLeaf->insert(*begin);
-                    ++begin;
-                }
+                } else
+                    newLeaf->insert(*begin++);  // fill leaf with key_val pair
             }
             //Add full leaf to output
             leaves.push_back(newLeaf);
@@ -515,15 +505,11 @@ public:
         std::vector<inner_node *> outputNodes;
 
         //Handle every node of this level
-        for (size_t i = 0; i < leaves.size(); ) {
+        for (size_t i = 0; i < leaves.size();) {
             auto n = new inner_node();
 
-            while (!n->full() && i < leaves.size()) {
-
-                leaf_node *tmp = leaves[i];
-                n->insert(tmp);
-                ++i;
-            }
+            while (!n->full() && i < leaves.size())
+                n->insert(leaves[i++]);
 
             outputNodes.push_back(n);
         }
@@ -534,11 +520,8 @@ public:
             inner_node *n = outputNodes.back();
             inner_node *prev = outputNodes[outputNodes.size() - 2];
 
-            while (!n->hasBTreeProperty()) {
-                auto *child = reinterpret_cast<leaf_node *>(prev->popChild());
-                n->insert(child);
-            }
-
+            while (!n->hasBTreeProperty())
+                n->insert(reinterpret_cast<leaf_node *>(prev->popChild()));
         }
 
         /* insert nodes */
@@ -549,16 +532,12 @@ public:
         bool finished = outputNodes.size() == 1;
 
         while (!finished) {
-
             //Handle every node of this level
-            for (size_type i = 0; i < inputNodes.size(); ) {
+            for (size_type i = 0; i < inputNodes.size();) {
                 auto n = new inner_node();
 
-                while (!n->full() && i < inputNodes.size()) {
-                    inner_node *tmp = inputNodes[i];
-                    n->insert(tmp);
-                    ++i;
-                }
+                while (!n->full() && i < inputNodes.size())
+                    n->insert(inputNodes[i++]);
 
                 outputNodes.push_back(n);
             }
@@ -568,31 +547,23 @@ public:
                 auto n = outputNodes.back();
                 auto prev = outputNodes[outputNodes.size() - 2];
 
-                while (!n->hasBTreeProperty()) {
-                    auto *child = reinterpret_cast<inner_node *>(prev->popChild());
-                    n->insert(child);
-                }
+                while (!n->hasBTreeProperty())
+                    n->insert(reinterpret_cast<inner_node *>(prev->popChild()));
             }
 
             //If level is finished and only one node is left, it is the root node of the tree --> end building tree here!
-            if (outputNodes.size() <= 1) {
+            if (outputNodes.size() <= 1)
                 finished = true;
-            }
 
             //prepare for next level: output is the new input
             inputNodes = outputNodes;
             outputNodes.clear();
-
         }
 
-        if (inputNodes.empty()) {
-            BPlusTree tree = BPlusTree();
-            return tree;
-        }
+        if (inputNodes.empty())
+            return BPlusTree();
 
-        inner_node *root = inputNodes.front();
-        return BPlusTree(root, leaves.size(), leaves.front(), leaves.back());
-
+        return BPlusTree(inputNodes.front(), leaves.size(), leaves.front(), leaves.back());
     }
 
     template<typename Container>
@@ -602,15 +573,11 @@ public:
     }
 
 
-
-
-
-
     /*--- Start of B+-Tree code --------------------------------------------------------------------------------------*/
 
 
 private:
-    BPlusTree(inner_node* rootNode, size_type _numLeaves, leaf_node* left, leaf_node* right) {
+    BPlusTree(inner_node *rootNode, size_type _numLeaves, leaf_node *left, leaf_node *right) {
         root = rootNode;
         numLeaves = _numLeaves;
         bottom_left_leaf = left;
@@ -636,7 +603,6 @@ public:
 
         //root.cleanUP();
         //if root was a pointer initialized with new, also delete
-
     }
 
     /** Returns the number of entries. */
@@ -665,33 +631,32 @@ public:
 
     /** Returns an iterator to the first entry in the tree. */
     iterator begin() {
-        /* TODO: 2.1.4.3 */
         return iterator(bottom_left_leaf, bottom_left_leaf->begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     iterator end() {
-        return iterator (bottom_right_leaf, bottom_right_leaf->end());
+        return iterator(bottom_right_leaf, bottom_right_leaf->end());
     }
 
     /** Returns an iterator to the first entry in the tree. */
     const_iterator begin() const {
-        return const_iterator (bottom_left_leaf, bottom_left_leaf->begin());
+        return const_iterator(bottom_left_leaf, bottom_left_leaf->begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     const_iterator end() const {
-        return const_iterator (bottom_right_leaf, bottom_right_leaf->end());
+        return const_iterator(bottom_right_leaf, bottom_right_leaf->end());
     }
 
     /** Returns an iterator to the first entry in the tree. */
     const_iterator cbegin() const {
-        return const_iterator (bottom_left_leaf, bottom_left_leaf->begin());
+        return const_iterator(bottom_left_leaf, bottom_left_leaf->begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     const_iterator cend() const {
-        return const_iterator (bottom_right_leaf, bottom_right_leaf->end());
+        return const_iterator(bottom_right_leaf, bottom_right_leaf->end());
     }
 
     /** Returns an iterator to the first leaf of the tree. */
@@ -701,33 +666,40 @@ public:
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     leaf_iterator leaves_end() {
-        return leaf_iterator (bottom_right_leaf->next());
+        return leaf_iterator(bottom_right_leaf->next());
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     const_leaf_iterator leaves_begin() const {
-        return const_leaf_iterator (bottom_left_leaf);
+        return const_leaf_iterator(bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     const_leaf_iterator leaves_end() const {
-        return const_leaf_iterator (bottom_right_leaf);
+        return const_leaf_iterator(bottom_right_leaf);
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     const_leaf_iterator cleaves_begin() const {
-        return const_leaf_iterator (bottom_left_leaf);
+        return const_leaf_iterator(bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     const_leaf_iterator cleaves_end() const {
-        return const_leaf_iterator (bottom_right_leaf);
+        return const_leaf_iterator(bottom_right_leaf);
     }
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
     const_iterator find(const key_type key) const {
         /* TODO: 2.1.4.5 */
         assert(false && "not implemented");
+
+        // tree search algorithm
+        // look at each node and decide which path we need to take
+
+        for (/*auto& elem: this->begin()*/ auto it = this->leaves_begin(); it != this->leaves_end(); ++it){
+            if (it);
+        }
     }
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
