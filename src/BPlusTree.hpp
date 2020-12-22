@@ -219,20 +219,23 @@ public:
              * *fundamental types*, the size equals the alignment requirement of that type.
              */
 
+            size_type biggest_tmp = (sizeof(void *) > sizeof(size_type)) ? sizeof(void *) : sizeof(size_type);
+            size_type biggest = sizeof(key_type) > biggest_tmp ? sizeof(key_type) : biggest_tmp;
+
             size_type capacity = 0;
-            size_type valueSize = sizeof(key_type);
+            bool found = false;
+            while(!found){
+                size_type no_padding = sizeof(size_type) + sizeof(leaf_node*) + sizeof(void*) * capacity + sizeof(key_type) * (capacity-1);
+                size_type padding = biggest - (no_padding % biggest);
 
-            size_type biggest = (sizeof(void *) > sizeof(size_type)) ? sizeof(void *) : sizeof(size_type);
-
-            //Compare with largest element of the struct since everything is padded to this element
-            if (valueSize > biggest) {
-                capacity = (64 - biggest - sizeof(leaf_node *)) / (valueSize * 2); //TODO: round down?
-            } else {
-                capacity = (64 - biggest - sizeof(leaf_node *)) / (biggest * 2);
+                if  ((no_padding + padding) > 64) {
+                    found = true;
+                }else {
+                    capacity++;
+                }
             }
 
-
-            return capacity;
+            return --capacity;
         }
 
     private:
@@ -333,26 +336,33 @@ public:
     struct leaf_node : tree_node {
     private:
         static constexpr size_type COMPUTE_CAPACITY() {
-            /* TODO: change if more attributes are added
+            /*
              * Compute the capacity of leaf nodes.  The capacity is the number of key-value-pairs a leaf node can
              * contain.  If the capacity is *n*, the leaf node can contain *n* key-value-pairs.
              * When computing the capacity of inner nodes, consider *all fields and padding* in your computation.  Use
              * `sizeof` to get the size of a field.  For *fundamental types*, the size equals the alignment requirement
              * of that type.
              */
-            size_type valueSize = sizeof(entry_type);
+            size_type size_entry = sizeof(entry_type);
+            size_type biggest_tmp = (sizeof(size_type) > sizeof(leaf_node *)) ? sizeof(size_type) : sizeof(leaf_node *);
+            size_type  biggest = biggest_tmp > size_entry ? biggest_tmp : size_entry;
+
             size_type capacity = 0;
+            bool found = false;
+            while(!found){
+                size_type no_padding = sizeof(size_type) + sizeof(leaf_node*) + sizeof(entry_type) * capacity;
+                size_type padding = biggest - (no_padding % biggest);
 
-            size_type biggest = (sizeof(size_type) > sizeof(leaf_node *)) ? sizeof(size_type) : sizeof(leaf_node *);
-
-            //Compare with largest element of the struct since everything is padded to this element
-            if (valueSize > biggest) {
-                capacity = (64 - biggest - sizeof(leaf_node *)) / valueSize; //TODO: round down?
-            } else {
-                capacity = (64 - biggest - sizeof(leaf_node *)) / biggest;
+                if  ((no_padding + padding) > 64) {
+                    found = true;
+                }else {
+                    capacity++;
+                }
             }
 
-            return capacity;
+            //since we stop with the capacity that results in the first bigger struct, return the next lower capacity
+            //that has passed the test
+            return --capacity;
         }
 
     private:
