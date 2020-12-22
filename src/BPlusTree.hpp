@@ -34,7 +34,7 @@ public:
         }
     };
 
-    struct tree_node;
+
     struct inner_node;
     struct leaf_node;
 
@@ -43,6 +43,8 @@ private:
      *
      * Declare fields of the B+-tree.
      */
+    struct tree_node;
+
     struct inner_node root;
     size_type numLeaves;
     leaf_node bottom_left_leaf;
@@ -195,10 +197,14 @@ public:
     using const_range = the_range<true>;
 
     /*--- Tree Node Data Types ---------------------------------------------------------------------------------------*/
+private:
     struct tree_node {
-    public:
-        void cleanUP() { };
+        virtual ~tree_node() = default;;
+        virtual void cleanUP() = 0;
+        virtual bool isLeaf() = 0;
     };
+
+public:
 
     /** Implements an inner node in a B+-Tree.  An inner node stores k-1 keys that distinguish the k child pointers. */
     struct inner_node : tree_node {
@@ -283,14 +289,21 @@ public:
         }
 
         void cleanUP(){
-            for (auto i=0; i<current_capacity; i++){
+            for (size_type i=0; i<current_capacity; i++){
                 if (children[i] != nullptr){
                     reinterpret_cast<tree_node*>(children[i])->cleanUP();
-                    delete (children[i]);
+
+                    if (reinterpret_cast<tree_node*>(children[i])->isLeaf()){
+                        delete (reinterpret_cast<leaf_node*>(children[i]));
+                    } else {
+                        delete (reinterpret_cast<inner_node*>(children[i]));
+                    }
                 }
             }
+        }
 
-
+        bool isLeaf() {
+            return false;
         }
     };
 
@@ -411,6 +424,10 @@ public:
         void cleanUP(){
             //Nothing to do
         }
+
+        bool isLeaf() {
+            return true;
+        }
     };
 
     /*--- Factory methods --------------------------------------------------------------------------------------------*/
@@ -499,7 +516,7 @@ public:
         while (!finished) {
 
             //Handle every node of this level
-            for (auto i = 0; i < inputNodes.size(); i++) {
+            for (size_type i = 0; i < inputNodes.size(); i++) {
                 auto n = new inner_node();
 
                 while (!n->full() && i < inputNodes.size()) {
@@ -580,7 +597,7 @@ public:
 
     ~BPlusTree() {
         /* TODO: 2.1.4.1 */
-        
+
         root.cleanUP();
         //if root was a pointer initialized with new, also delete
 
