@@ -45,10 +45,10 @@ private:
      */
     struct tree_node;
 
-    struct inner_node root;
+    struct inner_node* root;
     size_type numLeaves;
-    leaf_node bottom_left_leaf;
-    leaf_node bottom_right_leaf;
+    leaf_node* bottom_left_leaf;
+    leaf_node* bottom_right_leaf;
 
     /*--- Iterator ---------------------------------------------------------------------------------------------------*/
 private:
@@ -211,7 +211,7 @@ public:
     struct inner_node : tree_node {
     private:
         static constexpr size_type COMPUTE_CAPACITY() {
-            /* TODO: 2.1.3.2
+            /*
              * Compute the capacity of a inner nodes.  The capacity is the number of children an inner node can contain.
              * This means, the capacity equals the fan out.  If the capacity is *n*, the inner node can contain *n*
              * children and *n - 1* keys.
@@ -591,7 +591,7 @@ public:
         }
 
         inner_node *root = inputNodes.front();
-        return BPlusTree(*root, leaves.size(), *(leaves.front()), *(leaves.back()));
+        return BPlusTree(root, leaves.size(), leaves.front(), leaves.back());
 
     }
 
@@ -610,7 +610,7 @@ public:
 
 
 private:
-    BPlusTree(inner_node rootNode, size_type _numLeaves, leaf_node left, leaf_node right) {
+    BPlusTree(inner_node* rootNode, size_type _numLeaves, leaf_node* left, leaf_node* right) {
         root = rootNode;
         numLeaves = _numLeaves;
         bottom_left_leaf = left;
@@ -619,11 +619,11 @@ private:
 
     /* Constructor for empty tree */
     BPlusTree() {
-        root = inner_node();
+        root = new inner_node();
         numLeaves = 0;
         leaf_node *dummy = new leaf_node();
-        bottom_right_leaf = *dummy;
-        bottom_left_leaf = *dummy;
+        bottom_right_leaf = dummy;
+        bottom_left_leaf = dummy;
     }
 
 public:
@@ -646,7 +646,7 @@ public:
         //Go through every leaf and count the entries
         auto li = cleaves_begin();
         while (li != nullptr) {
-            size += li.node_->size();
+            size += li->size();
             li++;
         }
 
@@ -655,68 +655,73 @@ public:
 
     /** Returns the height of the tree, i.e. the number of edges on the longest path from leaf to root. */
     size_type height() const {
-        return ceil((log(numLeaves * 1.0)) / log(root.getNumberChildren()));
+
+        //log(0) and log of a negative number is not defined, so handle this case
+        if (numLeaves <= 0 || root->getNumberChildren() <= 0)
+            return 0;
+
+        return ceil(log(numLeaves) / log(root->getNumberChildren()));
     }
 
     /** Returns an iterator to the first entry in the tree. */
     iterator begin() {
         /* TODO: 2.1.4.3 */
-        return iterator(&bottom_left_leaf, bottom_left_leaf.begin());
+        return iterator(bottom_left_leaf, bottom_left_leaf->begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     iterator end() {
-        return iterator (&bottom_right_leaf, bottom_right_leaf.end());
+        return iterator (bottom_right_leaf, bottom_right_leaf->end());
     }
 
     /** Returns an iterator to the first entry in the tree. */
     const_iterator begin() const {
-        return const_iterator (&bottom_left_leaf, bottom_left_leaf.begin());
+        return const_iterator (bottom_left_leaf, bottom_left_leaf->begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     const_iterator end() const {
-        return const_iterator (&bottom_right_leaf, bottom_right_leaf.end());
+        return const_iterator (bottom_right_leaf, bottom_right_leaf->end());
     }
 
     /** Returns an iterator to the first entry in the tree. */
     const_iterator cbegin() const {
-        return const_iterator (&bottom_left_leaf, bottom_left_leaf.begin());
+        return const_iterator (bottom_left_leaf, bottom_left_leaf->begin());
     }
 
     /** Returns an iterator to the entry following the last entry in the tree. */
     const_iterator cend() const {
-        return const_iterator (&bottom_right_leaf, bottom_right_leaf.end());
+        return const_iterator (bottom_right_leaf, bottom_right_leaf->end());
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     leaf_iterator leaves_begin() {
-        return leaf_iterator(&bottom_left_leaf);
+        return leaf_iterator(bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     leaf_iterator leaves_end() {
-        return leaf_iterator (bottom_right_leaf.next());
+        return leaf_iterator (bottom_right_leaf->next());
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     const_leaf_iterator leaves_begin() const {
-        return const_leaf_iterator (&bottom_left_leaf);
+        return const_leaf_iterator (bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     const_leaf_iterator leaves_end() const {
-        return const_leaf_iterator (&bottom_right_leaf);
+        return const_leaf_iterator (bottom_right_leaf);
     }
 
     /** Returns an iterator to the first leaf of the tree. */
     const_leaf_iterator cleaves_begin() const {
-        return const_leaf_iterator (&bottom_left_leaf);
+        return const_leaf_iterator (bottom_left_leaf);
     }
 
     /** Returns an iterator to the next leaf after the last leaf of the tree. */
     const_leaf_iterator cleaves_end() const {
-        return const_leaf_iterator (&bottom_right_leaf);
+        return const_leaf_iterator (bottom_right_leaf);
     }
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
