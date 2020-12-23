@@ -206,6 +206,8 @@ private:
         virtual bool isLeaf() = 0;
 
         virtual key_type getHighestKey() = 0;
+
+        virtual std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k) = 0;
     };
 
 public:
@@ -282,7 +284,7 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity != COMPUTE_CAPACITY())
+            if (current_capacity < COMPUTE_CAPACITY()-1)
                 keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
@@ -298,10 +300,63 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity != COMPUTE_CAPACITY())
+            if (current_capacity < COMPUTE_CAPACITY()-1)
                 keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
+            return true;
+        }
+
+        bool insert_front(inner_node* child){
+            if (this->full()) return false;
+
+            //move every children one position to right
+            for (size_type i=1; i<=current_capacity; i++){
+                children[i] = children[i-1];
+            }
+
+            //Add children
+            children[0] = child;
+
+            //move every key to the right
+            for (size_type i=1; i<=current_capacity && i < COMPUTE_CAPACITY()-1; i++){
+                keys[i] = keys[i-1];
+            }
+
+            //adapt the key
+            keys[0] = reinterpret_cast<tree_node *>(children[0])->getHighestKey();
+
+            current_capacity++;
+
+            return true;
+        }
+
+        bool insert_front(leaf_node* child){
+            if (this->full()) return false;
+
+            //move every children one position to right
+            for (size_type i=1; i<=current_capacity; i++){
+                children[i] = children[i-1];
+            }
+
+            //move every children one position to right
+            for (size_type i=1; i<=current_capacity; i++){
+                children[i] = children[i-1];
+            }
+
+            //Add children
+            children[0] = child;
+
+            //move every key to the right
+            for (size_type i=1; i<current_capacity; i++){
+                keys[i] = keys[i-1];
+            }
+
+            //adapt the key
+            keys[0] = reinterpret_cast<tree_node *>(children[0])->getHighestKey();
+
+            current_capacity++;
+
             return true;
         }
 
@@ -345,6 +400,34 @@ public:
             // there was no smaller child so the last one it is
             return children[i];  //TODO i or ++i ? depends where the for loop halts
         }
+
+        std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k){
+
+            if (current_capacity == 0)
+                return std::nullopt;
+
+            //Check keys
+            for (size_type i=0; i<current_capacity && i<COMPUTE_CAPACITY()-1; i++){
+                if (k <= keys[i]){
+                    if (reinterpret_cast<tree_node*>(children[i])->isLeaf()){
+                        return reinterpret_cast<leaf_node*>(children[i])->find(k);
+                    } else {
+                        return reinterpret_cast<inner_node*>(children[i])->find(k);
+                    }
+                }
+
+            }
+
+            if (!this->full()) return std::nullopt;
+
+            //check if key could be in last leaf
+            if (reinterpret_cast<tree_node*>(children[current_capacity-1])->isLeaf()){
+                return reinterpret_cast<leaf_node*>(children[current_capacity-1])->find(k);
+            } else {
+                return reinterpret_cast<inner_node*>(children[current_capacity-1])->find(k);
+            }
+        }
+
     };
 
     /** Implements a leaf node in a B+-Tree.  A leaf node stores key-value-pairs.  */
@@ -476,6 +559,15 @@ public:
         key_type getHighestKey() {
             return values[num_values - 1].first;
         }
+
+        std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k){
+            for (size_type i=0; i<num_values; i++){
+                if (values[i].first == k)
+                    return std::tuple(this, &values[i]);
+            }
+
+            return std::nullopt;
+        }
     };
 
     /*--- Factory methods --------------------------------------------------------------------------------------------*/
@@ -535,7 +627,7 @@ public:
             inner_node *prev = outputNodes[outputNodes.size() - 2];
 
             while (!n->hasBTreeProperty())
-                n->insert(reinterpret_cast<leaf_node *>(prev->popChild()));
+                n->insert_front(reinterpret_cast<leaf_node *>(prev->popChild()));
         }
 
         /* insert nodes */
@@ -562,7 +654,8 @@ public:
                 auto prev = outputNodes[outputNodes.size() - 2];
 
                 while (!n->hasBTreeProperty())
-                    n->insert(reinterpret_cast<inner_node *>(prev->popChild()));
+                    //n->insert_front(reinterpret_cast<inner_node *>(prev->popChild()));
+                    n->insert_front(reinterpret_cast<inner_node *>(prev->popChild()));
             }
 
             //If level is finished and only one node is left, it is the root node of the tree --> end building tree here!
@@ -705,36 +798,30 @@ public:
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
     const_iterator find(const key_type key) const {
-        /* TODO: 2.1.4.5 */
-        assert(false && "not implemented");
+        auto erg =  root->find(key);
 
-        // take root node, iterate over all keys find the key which is smaller than my key
-        // if found
-        // key x means left is ]prev OR 0; x] and right >x
-
-        // TODO this should be tree_node
-        inner_node _root = this->root;
-
-        //TODO while not a leaf_node
-        while (_root != nullptr) {
-            _root = _root.getChildByKey();  //TODO reinterpretcast
+        if (erg){
+            //successfully found key
+            return const_iterator(std::get<0>(*erg), std::get<1>(*erg));
+        } else {
+            //key not found, return end()
+            return cend();
         }
 
-
-
-
-        // tree search algorithm
-        // look at each node and decide which path we need to take
-
-        for (/*auto& elem: this->begin()*/ auto it = this->leaves_begin(); it != this->leaves_end(); ++it) {
-            if (it);
-        }
     }
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
     iterator find(const key_type &key) {
-        /* TODO: 2.1.4.5 */
-        assert(false && "not implemented");
+
+        auto erg =  root->find(key);
+
+        if (erg){
+            //successfully found key
+            return iterator(std::get<0>(*erg), std::get<1>(*erg));
+        } else {
+            //key not found, return end()
+            return end();
+        }
     }
 
     /** Returns the range of entries between `lower` (including) and `upper` (excluding). */
