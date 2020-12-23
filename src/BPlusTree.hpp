@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <utility>
+#include <cmath>
 
 
 template<
@@ -80,13 +81,19 @@ private:
          */
         the_iterator &operator++() {
 
-            if (node_->cend() == elem_) {
+            ++elem_;
+
+            if (node_->end() == elem_) {
+                if (node_->next() == nullptr) return *this;
+
                 node_ = node_->next();
                 elem_ = node_->begin();
-            } else {
-                //normal case: get next element of leaf
-                ++elem_;    //TODO: check if this works or elem += sizeof(elem_type)
             }
+
+//            else {
+//                //normal case: get next element of leaf
+//                ++elem_;
+//            }
 
             return *this;
         }
@@ -208,6 +215,8 @@ private:
         virtual key_type getHighestKey() = 0;
 
         virtual std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k) = 0;
+
+        virtual std::optional<std::tuple<leaf_node*, entry_type*>> findFirstInRange(key_type k) = 0;
     };
 
 public:
@@ -428,6 +437,32 @@ public:
             }
         }
 
+        std::optional<std::tuple<leaf_node*, entry_type*>> findFirstInRange(key_type k){
+            if (current_capacity == 0)
+                return std::nullopt;
+
+            //Check keys
+            for (size_type i=0; i<current_capacity && i<COMPUTE_CAPACITY()-1; i++){
+                if (k <= keys[i]){
+                    if (reinterpret_cast<tree_node*>(children[i])->isLeaf()){
+                        return reinterpret_cast<leaf_node*>(children[i])->findFirstInRange(k);
+                    } else {
+                        return reinterpret_cast<inner_node*>(children[i])->findFirstInRange(k);
+                    }
+                }
+
+            }
+
+            if (!this->full()) return std::nullopt;
+
+            //check if key could be in last leaf
+            if (reinterpret_cast<tree_node*>(children[current_capacity-1])->isLeaf()){
+                return reinterpret_cast<leaf_node*>(children[current_capacity-1])->findFirstInRange(k);
+            } else {
+                return reinterpret_cast<inner_node*>(children[current_capacity-1])->findFirstInRange(k);
+            }
+        }
+
     };
 
     /** Implements a leaf node in a B+-Tree.  A leaf node stores key-value-pairs.  */
@@ -563,6 +598,15 @@ public:
         std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k){
             for (size_type i=0; i<num_values; i++){
                 if (values[i].first == k)
+                    return std::tuple(this, &values[i]);
+            }
+
+            return std::nullopt;
+        }
+
+        std::optional<std::tuple<leaf_node*, entry_type*>> findFirstInRange(key_type k){
+            for (size_type i=0; i<num_values; i++){
+                if (values[i].first >= k)
                     return std::tuple(this, &values[i]);
             }
 
@@ -832,7 +876,25 @@ public:
 
     /** Returns the range of entries between `lower` (including) and `upper` (excluding). */
     range in_range(const key_type &lower, const key_type &upper) {
-        /* TODO: 2.1.4.6 */
-        assert(false && "not implemented");
+        auto erg = root->findFirstInRange(lower);
+
+        if (erg){
+
+            //save the starting point
+            auto beginIt = iterator(std::get<0>(*erg), std::get<1>(*erg));
+
+
+            for (iterator it = iterator(std::get<0>(*erg), std::get<1>(*erg));it != end(); ++it){
+                if (it->first >= upper){
+                    return range(beginIt, iterator(it.node_, it.elem_));
+                }
+            }
+
+            return range(beginIt, end());
+
+        } else {
+            //nothing found
+            return range(end(), end());
+        }
     }
 };
