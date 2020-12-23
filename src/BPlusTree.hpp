@@ -331,6 +331,20 @@ public:
         key_type getHighestKey() {
             return reinterpret_cast<tree_node *>(children[current_capacity - 1])->getHighestKey();
         }
+
+        /* Return the correct child for a key */
+        void *getChildByKey(key_type key) {
+            unsigned int i = 0;
+            for (; i < sizeof(keys) /
+                       sizeof(key_type); i++ /*auto k = keys.begin(); k != keys.end(); k++*/ /*const key_type &k : keys*/) {
+                if (keys[i] >= key)
+                    return children[i];
+                if (keys[i] == 0) //TODO
+                    break;
+            }
+            // there was no smaller child so the last one it is
+            return children[i];  //TODO i or ++i ? depends where the for loop halts
+        }
     };
 
     /** Implements a leaf node in a B+-Tree.  A leaf node stores key-value-pairs.  */
@@ -694,10 +708,25 @@ public:
         /* TODO: 2.1.4.5 */
         assert(false && "not implemented");
 
+        // take root node, iterate over all keys find the key which is smaller than my key
+        // if found
+        // key x means left is ]prev OR 0; x] and right >x
+
+        // TODO this should be tree_node
+        inner_node _root = this->root;
+
+        //TODO while not a leaf_node
+        while (_root != nullptr) {
+            _root = _root.getChildByKey();  //TODO reinterpretcast
+        }
+
+
+
+
         // tree search algorithm
         // look at each node and decide which path we need to take
 
-        for (/*auto& elem: this->begin()*/ auto it = this->leaves_begin(); it != this->leaves_end(); ++it){
+        for (/*auto& elem: this->begin()*/ auto it = this->leaves_begin(); it != this->leaves_end(); ++it) {
             if (it);
         }
     }
