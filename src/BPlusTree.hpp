@@ -126,7 +126,7 @@ private:
 
         static constexpr bool Is_Const = C;
         using pointer_type = std::conditional_t<Is_Const, const leaf_node *, leaf_node *>;
-        using referene_type = std::conditional_t<Is_Const, const leaf_node &, leaf_node &>;
+        using reference_type = std::conditional_t<Is_Const, const leaf_node &, leaf_node &>;
 
     private:
         pointer_type node_; ///< the current leaf node
@@ -167,7 +167,7 @@ private:
         pointer_type operator->() const { return node_; }
 
         /** Returns a reference to the designated leaf. */
-        referene_type operator*() const { return *node_; }
+        reference_type operator*() const { return *node_; }
     };
 
 public:
