@@ -6,6 +6,7 @@
 #include <functional>
 #include <utility>
 #include <cmath>
+#include <optional>
 
 
 template<
@@ -214,9 +215,9 @@ private:
 
         virtual key_type getHighestKey() = 0;
 
-        virtual std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k) = 0;
+        virtual std::optional<std::tuple<leaf_node *, entry_type *>> find(key_type k) = 0;
 
-        virtual std::optional<std::tuple<leaf_node*, entry_type*>> findFirstInRange(key_type k) = 0;
+        virtual std::optional<std::tuple<leaf_node *, entry_type *>> findFirstInRange(key_type k) = 0;
     };
 
 public:
@@ -233,20 +234,18 @@ public:
              * *fundamental types*, the size equals the alignment requirement of that type.
              */
 
-            //FIXME always false!! void * has fixed size and is always smaller!
-            //size_type biggest_tmp = (sizeof(void *) > sizeof(size_type)) ? sizeof(void *) : sizeof(size_type);
-            size_type biggest_tmp = sizeof(size_type);
-            size_type biggest = sizeof(key_type) > biggest_tmp ? sizeof(key_type) : biggest_tmp;
+            size_type biggest = sizeof(key_type) > sizeof(size_type) ? sizeof(key_type) : sizeof(size_type);
 
             size_type capacity = 0;
-            bool found = false;
-            while (!found) {
+            //bool found = false;
+            while (1 /*!found*/) {
                 size_type no_padding = sizeof(size_type) + sizeof(leaf_node *) + sizeof(void *) * capacity +
                                        sizeof(key_type) * (capacity - 1);
                 size_type padding = biggest - (no_padding % biggest);
 
                 if ((no_padding + padding) > 64)
-                    found = true;
+                    //found = true;
+                    break;
                 else
                     capacity++;
             }
@@ -293,7 +292,7 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity < COMPUTE_CAPACITY()-1)
+            if (current_capacity < COMPUTE_CAPACITY() - 1)
                 keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
@@ -309,27 +308,27 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity < COMPUTE_CAPACITY()-1)
+            if (current_capacity < COMPUTE_CAPACITY() - 1)
                 keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
             return true;
         }
 
-        bool insert_front(inner_node* child){
+        bool insert_front(inner_node *child) {
             if (this->full()) return false;
 
             //move every children one position to right
-            for (size_type i=1; i<=current_capacity; i++){
-                children[i] = children[i-1];
+            for (size_type i = 1; i <= current_capacity; i++) {
+                children[i] = children[i - 1];
             }
 
             //Add children
             children[0] = child;
 
             //move every key to the right
-            for (size_type i=1; i<=current_capacity && i < COMPUTE_CAPACITY()-1; i++){
-                keys[i] = keys[i-1];
+            for (size_type i = 1; i <= current_capacity && i < COMPUTE_CAPACITY() - 1; i++) {
+                keys[i] = keys[i - 1];
             }
 
             //adapt the key
@@ -340,25 +339,25 @@ public:
             return true;
         }
 
-        bool insert_front(leaf_node* child){
+        bool insert_front(leaf_node *child) {
             if (this->full()) return false;
 
             //move every children one position to right
-            for (size_type i=1; i<=current_capacity; i++){
-                children[i] = children[i-1];
+            for (size_type i = 1; i <= current_capacity; i++) {
+                children[i] = children[i - 1];
             }
 
             //move every children one position to right
-            for (size_type i=1; i<=current_capacity; i++){
-                children[i] = children[i-1];
+            for (size_type i = 1; i <= current_capacity; i++) {
+                children[i] = children[i - 1];
             }
 
             //Add children
             children[0] = child;
 
             //move every key to the right
-            for (size_type i=1; i<current_capacity; i++){
-                keys[i] = keys[i-1];
+            for (size_type i = 1; i < current_capacity; i++) {
+                keys[i] = keys[i - 1];
             }
 
             //adapt the key
@@ -396,71 +395,49 @@ public:
             return reinterpret_cast<tree_node *>(children[current_capacity - 1])->getHighestKey();
         }
 
-        /* Return the correct child for a key */
-        void *getChildByKey(key_type key) {
-            unsigned int i = 0;
-            for (; i < sizeof(keys) /
-                       sizeof(key_type); i++ /*auto k = keys.begin(); k != keys.end(); k++*/ /*const key_type &k : keys*/) {
-                if (keys[i] >= key)
-                    return children[i];
-                if (keys[i] == 0) //TODO
-                    break;
-            }
-            // there was no smaller child so the last one it is
-            return children[i];  //TODO i or ++i ? depends where the for loop halts
-        }
-
-        std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k){
+        std::optional<std::tuple<leaf_node *, entry_type *>> find(key_type k) {
 
             if (current_capacity == 0)
                 return std::nullopt;
 
             //Check keys
-            for (size_type i=0; i<current_capacity && i<COMPUTE_CAPACITY()-1; i++){
-                if (k <= keys[i]){
-                    if (reinterpret_cast<tree_node*>(children[i])->isLeaf()){
-                        return reinterpret_cast<leaf_node*>(children[i])->find(k);
-                    } else {
-                        return reinterpret_cast<inner_node*>(children[i])->find(k);
-                    }
+            for (size_type i = 0; i < current_capacity/* && i < COMPUTE_CAPACITY() - 1*/; i++)
+                if (k <= keys[i]) {
+                    if (reinterpret_cast<tree_node *>(children[i])->isLeaf())
+                        return reinterpret_cast<leaf_node *>(children[i])->find(k);
+                    else
+                        return reinterpret_cast<inner_node *>(children[i])->find(k);
                 }
-
-            }
 
             if (!this->full()) return std::nullopt;
 
             //check if key could be in last leaf
-            if (reinterpret_cast<tree_node*>(children[current_capacity-1])->isLeaf()){
-                return reinterpret_cast<leaf_node*>(children[current_capacity-1])->find(k);
-            } else {
-                return reinterpret_cast<inner_node*>(children[current_capacity-1])->find(k);
-            }
+            if (reinterpret_cast<tree_node *>(children[current_capacity - 1])->isLeaf())
+                return reinterpret_cast<leaf_node *>(children[current_capacity - 1])->find(k);
+            else
+                return reinterpret_cast<inner_node *>(children[current_capacity - 1])->find(k);
         }
 
-        std::optional<std::tuple<leaf_node*, entry_type*>> findFirstInRange(key_type k){
+        std::optional<std::tuple<leaf_node *, entry_type *>> findFirstInRange(key_type k) {
             if (current_capacity == 0)
                 return std::nullopt;
 
             //Check keys
-            for (size_type i=0; i<current_capacity && i<COMPUTE_CAPACITY()-1; i++){
-                if (k <= keys[i]){
-                    if (reinterpret_cast<tree_node*>(children[i])->isLeaf()){
-                        return reinterpret_cast<leaf_node*>(children[i])->findFirstInRange(k);
-                    } else {
-                        return reinterpret_cast<inner_node*>(children[i])->findFirstInRange(k);
-                    }
+            for (size_type i = 0; i < current_capacity/* && i < COMPUTE_CAPACITY() - 1*/; i++)
+                if (k <= keys[i]) {
+                    if (reinterpret_cast<tree_node *>(children[i])->isLeaf())
+                        return reinterpret_cast<leaf_node *>(children[i])->findFirstInRange(k);
+                    else
+                        return reinterpret_cast<inner_node *>(children[i])->findFirstInRange(k);
                 }
-
-            }
 
             if (!this->full()) return std::nullopt;
 
             //check if key could be in last leaf
-            if (reinterpret_cast<tree_node*>(children[current_capacity-1])->isLeaf()){
-                return reinterpret_cast<leaf_node*>(children[current_capacity-1])->findFirstInRange(k);
-            } else {
-                return reinterpret_cast<inner_node*>(children[current_capacity-1])->findFirstInRange(k);
-            }
+            if (reinterpret_cast<tree_node *>(children[current_capacity - 1])->isLeaf())
+                return reinterpret_cast<leaf_node *>(children[current_capacity - 1])->findFirstInRange(k);
+            else
+                return reinterpret_cast<inner_node *>(children[current_capacity - 1])->findFirstInRange(k);
         }
 
     };
@@ -476,19 +453,18 @@ public:
              * `sizeof` to get the size of a field.  For *fundamental types*, the size equals the alignment requirement
              * of that type.
              */
-            // FIXME check clangTidy don't we want the size of the value behind the pointer not the size of a pointer?
-            size_type size_entry = sizeof(entry_type);
             size_type biggest_tmp = (sizeof(size_type) > sizeof(leaf_node *)) ? sizeof(size_type) : sizeof(leaf_node *);
-            size_type biggest = biggest_tmp > size_entry ? biggest_tmp : size_entry;
+            size_type biggest = biggest_tmp > sizeof(entry_type) ? biggest_tmp : sizeof(entry_type);
 
             size_type capacity = 0;
-            bool found = false;
-            while (!found) {
+            //bool found = false;
+            while (1/*!found*/) {
                 size_type no_padding = sizeof(size_type) + sizeof(leaf_node *) + sizeof(entry_type) * capacity;
                 size_type padding = biggest - (no_padding % biggest);
 
                 if ((no_padding + padding) > 64)
-                    found = true;
+                    //found = true;
+                    break;
                 else
                     capacity++;
             }
@@ -595,8 +571,8 @@ public:
             return values[num_values - 1].first;
         }
 
-        std::optional<std::tuple<leaf_node*, entry_type*>> find(key_type k){
-            for (size_type i=0; i<num_values; i++){
+        std::optional<std::tuple<leaf_node *, entry_type *>> find(key_type k) {
+            for (size_type i = 0; i < num_values; i++) {
                 if (values[i].first == k)
                     return std::tuple(this, &values[i]);
             }
@@ -604,8 +580,8 @@ public:
             return std::nullopt;
         }
 
-        std::optional<std::tuple<leaf_node*, entry_type*>> findFirstInRange(key_type k){
-            for (size_type i=0; i<num_values; i++){
+        std::optional<std::tuple<leaf_node *, entry_type *>> findFirstInRange(key_type k) {
+            for (size_type i = 0; i < num_values; i++) {
                 if (values[i].first >= k)
                     return std::tuple(this, &values[i]);
             }
@@ -626,6 +602,7 @@ public:
         auto leaves = std::vector<leaf_node *>();
         leaf_node *prev = nullptr;
 
+        // O(n)
         while (begin != end) {
             leaf_node *newLeaf = new leaf_node();
             if (prev != nullptr) prev->setNextLeaf(newLeaf);
@@ -654,6 +631,7 @@ public:
         /* handle first level */
         std::vector<inner_node *> outputNodes;
 
+        //O(n)
         //Handle every node of this level
         for (size_t i = 0; i < leaves.size();) {
             auto n = new inner_node();
@@ -842,24 +820,22 @@ public:
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
     const_iterator find(const key_type key) const {
-        auto erg =  root->find(key);
+        auto erg = root->find(key);
 
-        if (erg){
+        if (erg) {
             //successfully found key
             return const_iterator(std::get<0>(*erg), std::get<1>(*erg));
         } else {
             //key not found, return end()
             return cend();
         }
-
     }
 
     /** Returns an iterator to the first entry with a key that equals `key`, or `end()` if no such entry exists. */
     iterator find(const key_type &key) {
+        auto erg = root->find(key);
 
-        auto erg =  root->find(key);
-
-        if (erg){
+        if (erg) {
             //successfully found key
             return iterator(std::get<0>(*erg), std::get<1>(*erg));
         } else {
@@ -870,31 +846,37 @@ public:
 
     /** Returns the range of entries between `lower` (including) and `upper` (excluding). */
     const_range in_range(const key_type &lower, const key_type &upper) const {
-        /* TODO: 2.1.4.6 */
-        assert(false && "not implemented");
+        auto erg = root->findFirstInRange(lower);
+
+        if (erg) {
+            //save the starting point
+            auto beginIt = const_iterator(std::get<0>(*erg), std::get<1>(*erg));
+
+            for (iterator it = const_iterator(std::get<0>(*erg), std::get<1>(*erg)); it != cend(); ++it)
+                if (it->first >= upper)
+                    return const_range(beginIt, iterator(it.node_, it.elem_));
+
+            return const_range(beginIt, cend());
+        } else
+            //nothing found
+            return const_range(cend(), cend());
     }
 
     /** Returns the range of entries between `lower` (including) and `upper` (excluding). */
     range in_range(const key_type &lower, const key_type &upper) {
         auto erg = root->findFirstInRange(lower);
 
-        if (erg){
-
+        if (erg) {
             //save the starting point
             auto beginIt = iterator(std::get<0>(*erg), std::get<1>(*erg));
 
-
-            for (iterator it = iterator(std::get<0>(*erg), std::get<1>(*erg));it != end(); ++it){
-                if (it->first >= upper){
+            for (iterator it = iterator(std::get<0>(*erg), std::get<1>(*erg)); it != end(); ++it)
+                if (it->first >= upper)
                     return range(beginIt, iterator(it.node_, it.elem_));
-                }
-            }
 
             return range(beginIt, end());
-
-        } else {
+        } else
             //nothing found
             return range(end(), end());
-        }
     }
 };
