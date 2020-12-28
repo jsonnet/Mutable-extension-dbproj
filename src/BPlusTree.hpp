@@ -603,7 +603,7 @@ public:
         /* create leaves first */
         //int countKeys = std::distance(begin, end);
         //int countLeaves = countKeys / fanout
-        auto leaves = std::vector<leaf_node *>(250000);
+        auto leaves = std::vector<leaf_node *>();
         leaf_node *prev = nullptr;
 
         // O(n)
