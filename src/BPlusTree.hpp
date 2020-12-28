@@ -239,7 +239,7 @@ public:
             size_type capacity = 0;
             //bool found = false;
             while (1 /*!found*/) {
-                size_type no_padding = sizeof(size_type) + sizeof(leaf_node *) + sizeof(void *) * capacity +
+                size_type no_padding = 2*sizeof(size_type) + sizeof(leaf_node *) + sizeof(void *) * capacity +
                                        sizeof(key_type) * (capacity - 1);
                 size_type padding = biggest - (no_padding % biggest);
 
@@ -254,8 +254,9 @@ public:
         }
 
     private:
-        key_type keys[COMPUTE_CAPACITY() - 1];
-        void *children[COMPUTE_CAPACITY()]{};  //can either be inner_node* or leaf_node*
+        static constexpr size_type computed_capacity = COMPUTE_CAPACITY();
+        key_type keys[computed_capacity - 1];
+        void *children[computed_capacity]{};  //can either be inner_node* or leaf_node*
         size_type current_capacity = 0;
 
     public:
@@ -266,11 +267,11 @@ public:
 
         /** Returns true iff the inner node is full, i.e. capacity is reached. */
         [[nodiscard]] bool full() const {
-            return current_capacity == COMPUTE_CAPACITY();
+            return current_capacity == computed_capacity;
         }
 
         [[nodiscard]] size_type getNumberChildren() const {
-            return COMPUTE_CAPACITY();
+            return computed_capacity;
         }
 
         /* own functions */
@@ -292,7 +293,7 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity < COMPUTE_CAPACITY() - 1)
+            if (current_capacity < computed_capacity - 1)
                 keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
@@ -308,7 +309,7 @@ public:
             //insert key for this child by taking highest value of child: key one will cover )-infinity, highest_value of child 1)
             //second key is for child 2 and 3 where ) highest_value of child 1, highest_value of child 2)
 
-            if (current_capacity < COMPUTE_CAPACITY() - 1)
+            if (current_capacity < computed_capacity - 1)
                 keys[current_capacity] = reinterpret_cast<tree_node *>(children[current_capacity])->getHighestKey();
 
             current_capacity++;
@@ -326,8 +327,9 @@ public:
             //Add children
             children[0] = child;
 
+            //TODO check if we need the second AND condition
             //move every key to the right
-            for (size_type i = 1; i <= current_capacity && i < COMPUTE_CAPACITY() - 1; i++) {
+            for (size_type i = 1; i <= current_capacity && i < computed_capacity - 1; i++) {
                 keys[i] = keys[i - 1];
             }
 
@@ -369,7 +371,7 @@ public:
         }
 
         bool hasBTreeProperty() {
-            return this->current_capacity >= ceil(COMPUTE_CAPACITY() * 1.0 / 2);
+            return this->current_capacity >= ceil(computed_capacity * 1.0 / 2);
         }
 
         void cleanUP() {
@@ -599,7 +601,9 @@ public:
          */
 
         /* create leaves first */
-        auto leaves = std::vector<leaf_node *>();
+        //int countKeys = std::distance(begin, end);
+        //int countLeaves = countKeys / fanout
+        auto leaves = std::vector<leaf_node *>(250000);
         leaf_node *prev = nullptr;
 
         // O(n)
@@ -642,6 +646,7 @@ public:
             outputNodes.push_back(n);
         }
 
+        //O(1)
         //restore BTree property
         if (outputNodes.size() >= 2) {
             //Get last and second last node
