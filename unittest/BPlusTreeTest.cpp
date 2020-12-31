@@ -151,6 +151,32 @@ void __test_point_lookup()
             CHECK(it == tree.end());
         }
     }
+
+    SECTION("consecutive-js") // Make sure BTree Property works
+    {
+        std::vector<typename btree_type::value_type> data;
+        for (typename btree_type::key_type i = 0; i != 91; ++i) {
+            data.emplace_back(i, i*i);
+        }
+        auto tree = btree_type::Bulkload(data);
+
+        for (typename btree_type::key_type i = 0; i != 91; ++i) {
+            auto it = tree.find(i);
+            REQUIRE(it != tree.end());
+            CHECK(it->first == i);
+            CHECK(it->second == i*i);
+        }
+
+        {
+            auto it = tree.find(-1);
+            CHECK(it == tree.end());
+        }
+
+        {
+            auto it = tree.find(91);
+            CHECK(it == tree.end());
+        }
+    }
 }
 
 template<typename key_type, typename value_type>

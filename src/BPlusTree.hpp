@@ -277,9 +277,14 @@ public:
         /* own functions */
         // pop last child element (therefore delete it)
         void *popChild() {
-            assert(current_capacity != 0);
+            assert(current_capacity != 0); // Should never be called on a empty node, TODO but what about w/ only 1 elem
             auto tmp = children[--current_capacity];
             children[current_capacity] = nullptr;
+
+            // Also "pop" the child to stop confusion
+            if (current_capacity-1 != 0) // we never want to delete the first key, note the node will never be empty
+                keys[current_capacity-1] = 0;
+
             return tmp;
         }
 
@@ -320,16 +325,15 @@ public:
             if (this->full()) return false;
 
             //move every children one position to right
-            for (size_type i = 1; i <= current_capacity; i++) {
+            for (size_type i = current_capacity; i > 0; i--) {
                 children[i] = children[i - 1];
             }
 
             //Add children
             children[0] = child;
 
-            //TODO check if we need the second AND condition
             //move every key to the right
-            for (size_type i = 1; i <= current_capacity && i < computed_capacity - 1; i++) {
+            for (size_type i = current_capacity-1; i > 0; i--) {
                 keys[i] = keys[i - 1];
             }
 
@@ -345,12 +349,7 @@ public:
             if (this->full()) return false;
 
             //move every children one position to right
-            for (size_type i = 1; i <= current_capacity; i++) {
-                children[i] = children[i - 1];
-            }
-
-            //move every children one position to right
-            for (size_type i = 1; i <= current_capacity; i++) {
+            for (size_type i = current_capacity; i > 0; i--) {
                 children[i] = children[i - 1];
             }
 
@@ -358,7 +357,7 @@ public:
             children[0] = child;
 
             //move every key to the right
-            for (size_type i = 1; i < current_capacity; i++) {
+            for (size_type i = current_capacity-1; i > 0; i--) {
                 keys[i] = keys[i - 1];
             }
 
@@ -411,9 +410,10 @@ public:
                         return reinterpret_cast<inner_node *>(children[i])->find(k);
                 }
 
-            if (!this->full()) return std::nullopt;
+            // because we now also "pop" the key when popping a child we don't need the following
+            //if (!this->full()) return std::nullopt;
 
-            //check if key could be in last leaf
+            //check if key could be in last leaf in the range of current_capacity
             if (reinterpret_cast<tree_node *>(children[current_capacity - 1])->isLeaf())
                 return reinterpret_cast<leaf_node *>(children[current_capacity - 1])->find(k);
             else
@@ -433,7 +433,7 @@ public:
                         return reinterpret_cast<inner_node *>(children[i])->findFirstInRange(k);
                 }
 
-            if (!this->full()) return std::nullopt;
+            //if (!this->full()) return std::nullopt;
 
             //check if key could be in last leaf
             if (reinterpret_cast<tree_node *>(children[current_capacity - 1])->isLeaf())
@@ -543,13 +543,32 @@ public:
 
         /* own functions */
         entry_type popLast() {
-            return values[num_values--];
+            assert(num_values != 0);
+            //if (this->empty()) return NULL; // FIXME find right return type
+
+            // No need to delete the value, as we just decrease the pointer for free slots, so new items will overwrite
+            return values[--num_values];
         }
 
         bool insert(entry_type e) {
             if (this->full()) return false;
 
             values[num_values++] = e;
+            return true;
+        }
+
+        bool insert_front(entry_type e) {
+            if (this->full()) return false;
+
+            //move every children one position to right
+            for (size_type i = num_values; i > 0; i--) {
+                values[i] = values[i - 1];
+            }
+
+            //Add children
+            values[0] = e;
+
+            num_values++;
             return true;
         }
 
@@ -617,11 +636,11 @@ public:
                 if (begin == end) {
                     //Check if there are new elements to be inserted
                     if (!leaves.empty()) {
-                        leaf_node *prev = leaves.back();
+                        leaf_node *prev_ = leaves.back();
 
                         //Ensure that last leaf has BTree property
                         while (!newLeaf->hasBTreeProperty())
-                            newLeaf->insert(prev->popLast());
+                            newLeaf->insert_front(prev_->popLast());
                     }
                     //break while(!newLeaf.full()) else we are stuck on last leaf
                     break;
@@ -678,11 +697,11 @@ public:
             //ensure BTree property of last node
             if (outputNodes.size() >= 2) {
                 auto n = outputNodes.back();
-                auto prev = outputNodes[outputNodes.size() - 2];
+                auto prev_ = outputNodes[outputNodes.size() - 2];
 
                 while (!n->hasBTreeProperty())
                     //n->insert_front(reinterpret_cast<inner_node *>(prev->popChild()));
-                    n->insert_front(reinterpret_cast<inner_node *>(prev->popChild()));
+                    n->insert_front(reinterpret_cast<inner_node *>(prev_->popChild()));
             }
 
             //If level is finished and only one node is left, it is the root node of the tree --> end building tree here!
