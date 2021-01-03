@@ -275,7 +275,7 @@ public:
         }
 
         /* own functions */
-        // pop last child element (therefore delete it)
+        /// pop last child element (therefore delete it)
         void *popChild() {
             assert(current_capacity != 0); // Should never be called on a empty node, TODO but what about w/ only 1 elem
             auto tmp = children[--current_capacity];
@@ -288,7 +288,7 @@ public:
             return tmp;
         }
 
-        // insert child by inner_node
+        /// insert child by inner_node
         bool insert(inner_node *child) {
             assert(!this->full());
             if (this->full()) return false;
@@ -305,7 +305,7 @@ public:
             return true;
         }
 
-        // Insert child by leaf_node
+        /// Insert child by leaf_node
         bool insert(leaf_node *child) {
             if (this->full()) return false;
 
@@ -321,6 +321,7 @@ public:
             return true;
         }
 
+        /// Insert child at front of leaf_node
         bool insert_front(inner_node *child) {
             if (this->full()) return false;
 
@@ -345,6 +346,7 @@ public:
             return true;
         }
 
+        /// Insert child at front of leaf_node
         bool insert_front(leaf_node *child) {
             if (this->full()) return false;
 
@@ -369,6 +371,7 @@ public:
             return true;
         }
 
+        /// Checks if the node is at least filled half
         bool hasBTreeProperty() {
             return this->current_capacity >= ceil(computed_capacity * 1.0 / 2);
         }
@@ -391,7 +394,7 @@ public:
             return false;
         }
 
-        /* Returns the heighest key of the subtree*/
+        /** Returns the heighest key of the subtree */
         key_type getHighestKey() {
             return reinterpret_cast<tree_node *>(children[current_capacity - 1])->getHighestKey();
         }
@@ -619,11 +622,14 @@ public:
          * access iterators*.  The elements being iterated are `std::pair<key_type, mapped_type>`.
          */
 
-        /* create leaves first */
+        /** create leaves first */
         //int countKeys = std::distance(begin, end);
-        //int countLeaves = countKeys / fanout
+        //int countLeaves = countKeys / fan_out;
         auto leaves = std::vector<leaf_node *>();
         leaf_node *prev = nullptr;
+
+        std::vector<inner_node *> outputNodes;
+        auto node = new inner_node();
 
         // O(n)
         while (begin != end) {
@@ -649,13 +655,28 @@ public:
             }
             //Add full leaf to output
             leaves.push_back(newLeaf);
+
+            /// handle first level of nodes (from the bottom) //
+            node->insert(newLeaf);
+
+            if (node->full()) {
+                outputNodes.push_back(node);
+                node = new inner_node();
+            }
         }
 
-        /* handle first level */
+        // Here we need to add the last node to the vector, but only if it was filled with at least one elem
+        if (node->size() != 0)
+            outputNodes.push_back(node);
+
+/*
+        //! integrated
+        // handle first level /
         std::vector<inner_node *> outputNodes;
 
-        //O(n)
+        //O(n / fanout)
         //Handle every node of this level
+        outputNodes.clear();
         for (size_t i = 0; i < leaves.size();) {
             auto n = new inner_node();
 
@@ -664,9 +685,10 @@ public:
 
             outputNodes.push_back(n);
         }
+*/
 
         //O(1)
-        //restore BTree property
+        /// restore BTree property (only needed for the last node of that row) //
         if (outputNodes.size() >= 2) {
             //Get last and second last node
             inner_node *n = outputNodes.back();
