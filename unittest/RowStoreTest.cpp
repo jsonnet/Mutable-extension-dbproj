@@ -313,6 +313,7 @@ TEST_CASE("RowStore/access", "[milestone1]")
         { "f_b",    m::Type::Get_Boolean(m::Type::TY_Vector) },
         { "g_c",    m::Type::Get_Char(m::Type::TY_Vector, 7) },
         { "h_b",    m::Type::Get_Boolean(m::Type::TY_Vector) },
+        { "i_b",    m::Type::Get_Boolean(m::Type::TY_Vector) },
     };
     for (auto &attr : Attributes)
         table.push_back(C.pool(attr.first), attr.second);
@@ -345,8 +346,8 @@ TEST_CASE("RowStore/access", "[milestone1]")
 
     {
         auto insertions = m::statement_from_string(diag, "INSERT INTO test VALUES \
-                ( 42, 3.14, 1337, TRUE, 2.71828, FALSE, \"female\", TRUE ), \
-                ( NULL, 6.62607015, -137, NULL, 6.241509074, FALSE, NULL, TRUE );");
+                ( 42, 3.14, 1337, TRUE, 2.71828, FALSE, \"female\", TRUE, NULL ), \
+                ( NULL, 6.62607015, -137, NULL, 6.241509074, FALSE, NULL, TRUE, FALSE );");
         m::execute_statement(diag, *insertions);
 
         auto stmt = m::statement_from_string(diag, "SELECT * FROM test;");
@@ -373,6 +374,7 @@ TEST_CASE("RowStore/access", "[milestone1]")
                     CHECK_VALUE("f_b",  b, false);
                     CHECK_VALUE("h_b",  b, true);
                     CHECK_CHAR("g_c", "female");
+                    CHECK(T.is_null(IDX("i_b")));
                     break;
                 }
 
@@ -385,6 +387,7 @@ TEST_CASE("RowStore/access", "[milestone1]")
                     CHECK_VALUE("f_b",  b, false);
                     CHECK(T.is_null(IDX("g_c")));
                     CHECK_VALUE("h_b",  b, true);
+                    CHECK_VALUE("i_b", b, false);
                     break;
                 }
 
