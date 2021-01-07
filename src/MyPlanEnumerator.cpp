@@ -4,37 +4,38 @@
 using namespace m;
 using namespace std;
 
-bool sortfunc(SmallBitset a, SmallBitset b){
-    return a.size() < b.size();
-}
 
-void MyPlanEnumerator::operator()(const QueryGraph &G, const CostFunction &CF, PlanTable &PT) const
-{
+void MyPlanEnumerator::operator()(const QueryGraph &G, const CostFunction &CF, PlanTable &PT) const {
     const AdjacencyMatrix M(G); // compute the adjacency matrix for graph G
-    auto subPlans = getSubPlanBitmaps(G.sources(), M,   PT);
-    sort(subPlans.begin(), subPlans.end(), sortfunc);
+    auto subPlans = getSubPlanBitmaps(G.sources(), M, PT);
 
-    for (auto i=0; i<subPlans.size(); i++){
-        for(auto j=i+1; j<subPlans.size()-1; j++){
+    for (auto i = 1; i < G.sources().size(); i++) {  // we do not need to consider last size (only one sub elem)
+        //cout << "I: " << i << endl;
+        auto tmp = subPlans[i];
 
-            if (M.is_connected(subPlans[i] | subPlans[j]))
-                PT.update(CF, subPlans[i], subPlans[j], 0);
-
+        for (auto j = 0; j < tmp.size() - 1; j++) {  // last elem does not have a further pair so -1
+            //cout << tmp[j] << endl;
+            //cout << "J: " << j << endl;
+            for (auto k = j + 1; k < tmp.size(); k++) {
+                //cout << "K: " << k << endl;
+                if (M.is_connected(tmp[j] | tmp[k]))
+                    PT.update(CF, tmp[j], tmp[k], 0);
+            }
         }
     }
 
-
+    1+1;
 
 }
 
 
-std::vector<SmallBitset> getSubPlanBitmaps(std::vector<m::DataSource*> arr, const AdjacencyMatrix M, PlanTable &PT){
-    std::vector<SmallBitset> erg;
+std::map<int, vector<SmallBitset>> getSubPlanBitmaps(std::vector<m::DataSource *> arr, const AdjacencyMatrix M, PlanTable &PT) {
+    map<int, std::vector<SmallBitset>> erg;
 
-    for(auto i=1; i< pow(2, arr.size()); i++){
+    for (auto i = 1; i < pow(2, arr.size()); i++) {
         auto tmp = SmallBitset(i);
         if (M.is_connected(tmp))
-            erg.push_back(tmp);
+            erg[tmp.size()].push_back(tmp);
     }
 
     return erg;

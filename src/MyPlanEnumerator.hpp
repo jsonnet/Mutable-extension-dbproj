@@ -8,4 +8,4 @@ struct MyPlanEnumerator : m::PlanEnumerator
 
 };
 
-std::vector<m::SmallBitset> getSubPlanBitmaps(const std::vector<m::DataSource*> arr, const m::AdjacencyMatrix M, m::PlanTable &PT);
+std::map<int, std::vector<m::SmallBitset>> getSubPlanBitmaps(const std::vector<m::DataSource*> arr, const m::AdjacencyMatrix M, m::PlanTable &PT);
