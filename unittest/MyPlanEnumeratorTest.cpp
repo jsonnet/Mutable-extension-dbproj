@@ -299,3 +299,76 @@ WHERE T0.id = T1.fid_T0 AND T1.id = T2.fid_T1 AND T2.id = T3.fid_T2 AND T0.id = 
     MyPlanEnumerator{}(*G, CF, PT);
     CHECK_PLANTABLES_EQUAL(expected_plan_table, PT);
 }
+
+TEST_CASE("MyPlanEnumerator/cost-overflow", "[milestone3]")
+{
+    using Subproblem = QueryGraph::Subproblem;
+    Catalog::Clear();
+    Catalog &C = Catalog::Get();
+    std::ostringstream out, err;
+    Diagnostic diag(false, out, err);
+
+    setup_tables();
+
+    std::string query_str;
+    Subproblem T0, T1, T2;
+
+    SECTION("T0 T1 T2")
+    {
+        query_str = "\
+SELECT * \
+FROM T0, T1, T2 \
+WHERE T0.id = T1.fid_T0 AND T1.id = T2.fid_T1;";
+        T0 = Subproblem(1);
+        T1 = Subproblem(2);
+        T2 = Subproblem(4);
+    }
+
+    SECTION("T0 T2 T1")
+    {
+        query_str = "\
+SELECT * \
+FROM T0, T2, T1 \
+WHERE T0.id = T1.fid_T0 AND T1.id = T2.fid_T1;";
+        T0 = Subproblem(1);
+        T2 = Subproblem(2);
+        T1 = Subproblem(4);
+    }
+
+    SECTION("T1 T0 T2")
+    {
+        query_str = "\
+SELECT * \
+FROM T1, T0, T2 \
+WHERE T0.id = T1.fid_T0 AND T1.id = T2.fid_T1;";
+        T1 = Subproblem(1);
+        T0 = Subproblem(2);
+        T2 = Subproblem(4);
+    }
+
+    auto stmt = m::statement_from_string(diag, query_str);
+    auto G = QueryGraph::Build(*stmt);
+
+    CostFunction CF([](CostFunction::Subproblem left, CostFunction::Subproblem right, int, const PlanTable &T) {
+        return sum_wo_overflow(T[left].cost, T[right].cost, T[left].size, T[right].size);
+    });
+
+    /* Define subproblems. */
+    const Subproblem T0xT2(T0 | T2);
+    const Subproblem All(T0 | T1 | T2);
+
+    /* Initialize plan table. */
+    PlanTable PT(3);
+    PT[T0].cost = 0;
+    PT[T0].size = (1UL << 63) + 42;
+    PT[T1].cost = 0;
+    PT[T1].size = (1UL << 63) + 1337;
+    PT[T2].cost = 0;
+    PT[T2].size = (1UL << 63) + 314;
+
+    /* Run MyPlanEnumerator. */
+    MyPlanEnumerator{}(*G, CF, PT);
+
+    CHECK_FALSE(PT.has_plan(T0xT2)); // infeasible subproblem
+    CHECK((PT[All].left != T0xT2 and PT[All].right != T0xT2)); // infeasible subproblem part of plan
+}
