@@ -18,42 +18,7 @@ uint64_t findMSB(uint64_t n) {
     return (msb);
 }
 
-std::vector<SmallBitset> getSubsets(SmallBitset S){
-    if (S.empty()) return std::vector<SmallBitset>();
 
-    int pos[S.size()];
-    int count = 0;
-    std::vector<SmallBitset> subsets;
-
-    for (int i = 0; i <= findMSB((uint64_t) S); i++){
-        if (S.contains(i))
-            pos[count++] = i;
-    }
-
-    for(int i =0; i<S.size(); i++){
-        auto tmp = SmallBitset();
-        tmp.set(pos[i]);
-        subsets.push_back(tmp);
-    }
-
-    /*
-    auto n = S.size();
-    for (int i=0; i< pow(2, n); i++){
-        SmallBitset bitRepr = SmallBitset(i);
-        SmallBitset tmp = SmallBitset();
-        for (int j=0; j<n; j++) {
-
-            if (bitRepr.contains(j))
-                tmp.set(pos[j]);
-        }
-
-        subsets.push_back(tmp);
-    }
-
-     */
-    return subsets;
-
-}
 
 void MyPlanEnumerator::operator()(const QueryGraph &G, const CostFunction &CF, PlanTable &PT) const {
     // compute the adjacency matrix for graph G
@@ -83,26 +48,19 @@ vector<uint64_t> EnumerateCsgRec(const QueryGraph &G, SmallBitset S, SmallBitset
     vector<uint64_t> rec_erg;
 
 
-    auto subsets = getSubsets(N);
-    for (SmallBitset i : subsets){
-        erg.push_back((uint64_t) (S | i));
+    auto i = findMSB((uint64_t) N);
+    auto t_N = (uint64_t) N;
+    while (i != -1) { //TODO not nice! -1 overflows to max value
+        erg.push_back((uint64_t) (S | SmallBitset(1 << i)));
 
         //join return vector of recursion to own return values
-        auto toAdd = EnumerateCsgRec(G, S | i, X | N, M);
+        auto toAdd = EnumerateCsgRec(G, S | SmallBitset(1 << i), X | N, M);
         rec_erg.insert(rec_erg.end(), toAdd.begin(), toAdd.end());
+
+        t_N = t_N - (1 << i);
+        i = findMSB(t_N);
     }
 
-    /*
-    //for(auto i = (uint64_t )N; i > 0; i--){
-    for (uint64_t i = 1; i <= (uint64_t) N; i++) { //
-        if (SmallBitset(i).is_subset(N)) {
-            erg.push_back((uint64_t) (S | SmallBitset(i)));
-
-            //join return vector of recursion to own return values
-            auto toAdd = EnumerateCsgRec(G, S | SmallBitset(i), X | N, M);
-            rec_erg.insert(rec_erg.end(), toAdd.begin(), toAdd.end());
-        }
-    } */
 
     erg.insert(erg.end(), rec_erg.begin(), rec_erg.end());
     return erg;
