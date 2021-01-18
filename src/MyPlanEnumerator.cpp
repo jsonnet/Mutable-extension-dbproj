@@ -50,24 +50,23 @@ vector<int> EnumerateCsgRec(const QueryGraph &G, int S, SmallBitset xset, Adjace
     //cout << "N-X: " << N << " xset: " << xset << " neighbours: " << neighbours << endl;
 
     vector<int> erg;
+    vector<int> rec_erg;
+
 
     //TODO maybe enumerate subsets first ?!
-    for(auto i = 1<<G.sources().size(); i > 0; i--){
+    for(auto i = (uint64_t )N; i > 0; i--){
     //for (auto i = 1; i <= (1 << G.sources().size()); i++) { //
         if (SmallBitset(i).is_subset(N)) {
-            //emit ( i | S)
-            //cout << "subset found: " << SmallBitset(i) << " emitting: " << SmallBitset(i | 1 << S) << endl;
-            erg.push_back(i | 1 << S);
+            erg.push_back(1 << S | i);
+
+            auto toAdd = EnumerateCsgRec(G, (1 << S | i), xset |  N, M);
+            rec_erg.insert(rec_erg.end(), toAdd.begin(), toAdd.end());  //join return vector of recursion to own return values
+
         }
     }
 
-    vector<int> tmp_vector = erg;
+    erg.insert(erg.end(), rec_erg.begin(), rec_erg.end());
 
-    for (int i : tmp_vector) {
-        int tmp = (uint64_t) xset | (uint64_t) N; // TODO check again
-        auto toAdd = EnumerateCsgRec(G, i, SmallBitset(tmp), M);
-        erg.insert(erg.end(), toAdd.begin(), toAdd.end());  //join return vector of recursion to own return values
-    }
 
     return erg;
 }
@@ -91,7 +90,7 @@ unsigned int getFirstSetBitPos(int n) {
 vector<int> EnumerateCmp(const QueryGraph &G, AdjacencyMatrix M, SmallBitset S) {
     //min(S_1) ist Knoten mit kleinsten Index in S_1
     auto minS = getFirstSetBitPos((uint64_t) S);
-    SmallBitset B_minS = makeB_i((uint64_t)S, (uint64_t) minS);
+    SmallBitset B_minS = makeB(minS);//makeB_i((uint64_t)S, (uint64_t) minS);
     auto X = B_minS | S;
 
     SmallBitset N = M.neighbors(S) - X;
@@ -105,9 +104,8 @@ vector<int> EnumerateCmp(const QueryGraph &G, AdjacencyMatrix M, SmallBitset S) 
         //emit(i)
         erg.push_back(1 << i);
 
-        //auto tmp = EnumerateCsgRec(G, 1 << i, (uint64_t) (X | makeB((uint64_t) N)), M); // 100
-        auto tmp = EnumerateCsgRec(G, 1 << (i-1), (X | makeB_i((uint64_t) N, i)), M); //TODO check filter
-        //auto tmp = EnumerateCsgRec(G, 1 << i, SmallBitset(0/*(X /*| makeB_i((uint64_t) N, i)*/), M); //TODO check filter
+        //auto tmp = EnumerateCsgRec(G, 1 << (i-1), (X | makeB((uint64_t) N)), M); // 100
+        auto tmp = EnumerateCsgRec(G, 1 << (i-1), (X | makeB_i((uint64_t) N, i)), M); //TODO check why i-1 is needed for cycle and chain
         erg.insert(erg.end(), tmp.begin(), tmp.end());
 
         t_N = t_N - (1 << i);
@@ -121,23 +119,9 @@ vector<int> EnumerateCmp(const QueryGraph &G, AdjacencyMatrix M, SmallBitset S) 
 SmallBitset makeB_i(int N, int i) {
     auto Nset = SmallBitset(N);
     SmallBitset erg = SmallBitset();
-    for (auto k = 0; k < i; k++) {
+    for (auto k = 0; k <= i; k++) {
         if (Nset.contains(k))
             erg.set(k);
-    }
-
-    return erg;
-}
-
-
-std::map<int, vector<SmallBitset>>
-getSubPlanBitmaps(std::vector<m::DataSource *> arr, const AdjacencyMatrix M, PlanTable &PT) {
-    map<int, std::vector<SmallBitset>> erg;
-
-    for (auto i = 1; i < pow(2, arr.size()); i++) {
-        auto tmp = SmallBitset(i);
-        if (M.is_connected(tmp))
-            erg[tmp.size()].push_back(tmp);
     }
 
     return erg;
