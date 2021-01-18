@@ -30,7 +30,6 @@ void MyPlanEnumerator::operator()(const QueryGraph &G, const CostFunction &CF, P
 
         for (auto S_r : cmps) {
             PT.update(CF, SmallBitset(S), SmallBitset(S_r), 0);
-            //PT.update(CF, SmallBitset(S_r), SmallBitset(S), 0);
         }
     }
 
@@ -41,19 +40,15 @@ SmallBitset makeB(int i) {
 }
 
 vector<int> EnumerateCsgRec(const QueryGraph &G, int S, SmallBitset xset, AdjacencyMatrix M) {
-    //cout << S << " : " << X << endl;
-
     //Get neighbours of S
     SmallBitset neighbours = M.neighbors(SmallBitset(1 << S)); // find all neighbours
 
     auto N = neighbours - xset; // exclude all prohibited ones
-    //cout << "N-X: " << N << " xset: " << xset << " neighbours: " << neighbours << endl;
 
     vector<int> erg;
     vector<int> rec_erg;
 
 
-    //TODO maybe enumerate subsets first ?!
     for(auto i = (uint64_t )N; i > 0; i--){
     //for (auto i = 1; i <= (1 << G.sources().size()); i++) { //
         if (SmallBitset(i).is_subset(N)) {
@@ -100,12 +95,9 @@ vector<int> EnumerateCmp(const QueryGraph &G, AdjacencyMatrix M, SmallBitset S) 
     auto i = findMSB((uint64_t) N);
     auto t_N = (uint64_t) N;
     while (i != -1) {
-        //cout << SmallBitset(1<<i) << endl;
-        //emit(i)
         erg.push_back(1 << i);
 
-        //auto tmp = EnumerateCsgRec(G, 1 << (i-1), (X | makeB((uint64_t) N)), M); // 100
-        auto tmp = EnumerateCsgRec(G, 1 << (i-1), (X | makeB_i((uint64_t) N, i)), M); //TODO check why i-1 is needed for cycle and chain
+        auto tmp = EnumerateCsgRec(G, i, (X | makeB_i((uint64_t) N, i)), M); //TODO check why i-1 is needed for cycle and chain
         erg.insert(erg.end(), tmp.begin(), tmp.end());
 
         t_N = t_N - (1 << i);

@@ -15,3 +15,4 @@ unsigned int getFirstSetBitPos(int n);
 m::SmallBitset makeB(int i);
 std::vector<int> EnumerateCmp(const m::QueryGraph &G, m::AdjacencyMatrix M, m::SmallBitset S);
 m::SmallBitset makeB_i(int N, int i);
+unsigned int getFirstSetBitPos(int n);
