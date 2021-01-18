@@ -8,11 +8,10 @@ struct MyPlanEnumerator : m::PlanEnumerator
 
 };
 
-std::map<int, std::vector<m::SmallBitset>> getSubPlanBitmaps(const std::vector<m::DataSource*> arr, const m::AdjacencyMatrix M, m::PlanTable &PT);
-std::vector<int> EnumerateCsg(const m::QueryGraph &G, m::AdjacencyMatrix M);
-std::vector<int> EnumerateCsgRec(const m::QueryGraph &G, int S, m::SmallBitset X, m::AdjacencyMatrix M);
-unsigned int getFirstSetBitPos(int n);
-m::SmallBitset makeB(int i);
-std::vector<int> EnumerateCmp(const m::QueryGraph &G, m::AdjacencyMatrix M, m::SmallBitset S);
-m::SmallBitset makeB_i(int N, int i);
-unsigned int getFirstSetBitPos(int n);
+std::vector<uint64_t> EnumerateCsg(const m::QueryGraph &G, m::AdjacencyMatrix M);
+std::vector<uint64_t> EnumerateCsgRec(const m::QueryGraph &G, m::SmallBitset S, m::SmallBitset X, m::AdjacencyMatrix M);
+uint64_t getFirstSetBitPos(uint64_t n);
+m::SmallBitset makeB(uint64_t i);
+std::vector<uint64_t> EnumerateCmp(const m::QueryGraph &G, m::AdjacencyMatrix M, m::SmallBitset S);
+m::SmallBitset makeB_i(uint64_t N, uint64_t i);
+uint64_t getFirstSetBitPos(uint64_t n);
