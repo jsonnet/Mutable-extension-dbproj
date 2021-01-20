@@ -347,7 +347,8 @@ TEST_CASE("RowStore/access", "[milestone1]")
     {
         auto insertions = m::statement_from_string(diag, "INSERT INTO test VALUES \
                 ( 42, 3.14, 1337, TRUE, 2.71828, FALSE, \"female\", TRUE, NULL ), \
-                ( NULL, 6.62607015, -137, NULL, 6.241509074, FALSE, NULL, TRUE, FALSE );");
+                ( NULL, 6.62607015, -137, NULL, 6.241509074, FALSE, NULL, TRUE, FALSE ), \
+                ( 13, 2.718, 137, NULL, 0.51099895000, TRUE, \"unicorn\", FALSE, TRUE );");
         m::execute_statement(diag, *insertions);
 
         auto stmt = m::statement_from_string(diag, "SELECT * FROM test;");
@@ -391,6 +392,19 @@ TEST_CASE("RowStore/access", "[milestone1]")
                     break;
                 }
 
+                case 2: {
+                    CHECK_VALUE("a_i4", i, 13);
+                    CHECK_VALUE("b_f",  f, 2.718f);
+                    CHECK_VALUE("c_i2", i, 137);
+                    CHECK(T.is_null(IDX("d_b")));
+                    CHECK_VALUE("e_d", d, 0.51099895000);
+                    CHECK_VALUE("f_b", b, true);
+                    CHECK_CHAR("g_c", "unicorn");
+                    CHECK_VALUE("h_b", b, false);
+                    CHECK_VALUE("i_b", b, true);
+                    break;
+                }
+
                 default:
                     REQUIRE(false);
             }
@@ -401,6 +415,6 @@ TEST_CASE("RowStore/access", "[milestone1]")
         m::execute_query(diag, *select_stmt, std::move(callback));
         REQUIRE(diag.num_errors() == 0);
         REQUIRE(err.str().empty());
-        REQUIRE(num_tuples == 2);
+        REQUIRE(num_tuples == 3);
     }
 }
