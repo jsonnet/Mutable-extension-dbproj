@@ -669,24 +669,6 @@ public:
         if (node->size() != 0)
             outputNodes.push_back(node);
 
-/*
-        //! integrated
-        // handle first level /
-        std::vector<inner_node *> outputNodes;
-
-        //O(n / fanout)
-        //Handle every node of this level
-        outputNodes.clear();
-        for (size_t i = 0; i < leaves.size();) {
-            auto n = new inner_node();
-
-            while (!n->full() && i < leaves.size())
-                n->insert(leaves[i++]);
-
-            outputNodes.push_back(n);
-        }
-*/
-
         //O(1)
         /// restore BTree property (only needed for the last node of that row) //
         if (outputNodes.size() >= 2) {
@@ -722,7 +704,6 @@ public:
                 auto prev_ = outputNodes[outputNodes.size() - 2];
 
                 while (!n->hasBTreeProperty())
-                    //n->insert_front(reinterpret_cast<inner_node *>(prev->popChild()));
                     n->insert_front(reinterpret_cast<inner_node *>(prev_->popChild()));
             }
 

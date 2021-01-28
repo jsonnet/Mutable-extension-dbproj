@@ -1,4 +1,5 @@
 #include "RowStore.hpp"
+#include <cstdlib>
 
 using namespace rewire;
 

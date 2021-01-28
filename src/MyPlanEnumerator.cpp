@@ -4,7 +4,7 @@
 using namespace m;
 using namespace std;
 
-uint64_t findMSB(uint64_t n) {
+uint64_t findMSB(uint64_t n) { // MSB pos
     if (n == 0)
         return -1;
 
@@ -16,9 +16,8 @@ uint64_t findMSB(uint64_t n) {
     }
 
     return (msb);
+    //return 63 - __builtin_clzl(n);
 }
-
-
 
 void MyPlanEnumerator::operator()(const QueryGraph &G, const CostFunction &CF, PlanTable &PT) const {
     // compute the adjacency matrix for graph G
@@ -46,7 +45,6 @@ vector<uint64_t> EnumerateCsgRec(const QueryGraph &G, SmallBitset S, SmallBitset
 
     vector<uint64_t> erg;
     vector<uint64_t> rec_erg;
-
 
     auto i = findMSB((uint64_t) N);
     auto t_N = (uint64_t) N;
@@ -80,7 +78,7 @@ vector<uint64_t> EnumerateCsg(const QueryGraph &G, AdjacencyMatrix M) {
     return erg;
 }
 
-uint64_t getFirstSetBitPos(uint64_t n) {
+uint64_t getFirstSetBitPos(uint64_t n) {  //LSB pos
     return log2(n & -n);
 }
 
