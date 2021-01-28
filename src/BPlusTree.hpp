@@ -757,8 +757,9 @@ public:
     ~BPlusTree() {
         /* TODO: 2.1.4.1 */
 
-        //root.cleanUP();
+        root->cleanUP();
         //if root was a pointer initialized with new, also delete
+        delete root;
     }
 
     /** Returns the number of entries. */
